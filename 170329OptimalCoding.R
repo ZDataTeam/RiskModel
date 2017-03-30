@@ -81,7 +81,7 @@ PCA <- function(x){
   class.1.1.ratio  <- rs.compute(class.1.1, list)
   class.1.1.merge <- merge(class.1.1.ratio, class.1.ratio, by = "names.x.", all.x = T)
   decrease.number <- sum(class.1.ratio$Ratio.x < class.1.ratio$Ratio.y)
-  decrease.ratio <- decrease.number/ncol(class.1.ratio)
+  decrease.ratio <- decrease.number/ncol(class.1.1.ratio)
   if(decrease.ratio >= 0.5){
     end.split <- T
   } else{
