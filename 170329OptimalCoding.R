@@ -1,5 +1,7 @@
 # DATA INPUT
-mysample <- read.csv("E:\\Allinpay\\Data\\LOAN\\sqlExport\\sample.csv",
+
+# mysample <- read.csv("E:\\Allinpay\\Data\\LOAN\\sqlExport\\sample.csv", # win
+mysample <- read.csv("/Users/mk/Desktop/sample.csv", # mac
                      header = T,
                      stringsAsFactors = T)
 options(scipen=3)
