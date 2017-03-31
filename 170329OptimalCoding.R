@@ -79,11 +79,12 @@ PCA <- function(x){
   return(list(class.1, class.2))
 }
 
-# end.split的输入为当前节点的父节点、自身节点及其他所有子节点
-end.split <- function(class.1, class.1.1, list){
+# end.split的输入为当前节点的两个父节点、自身节点及其他所有子节点
+end.split <- function(class.1, class.2, class.1.1, list){
   end.split <- F
   class.1.ratio <- rs.compute(class.1, class.2)
-  # class.2.ratio <- rs.compute(class.2, class.1)
+  class.2.ratio <- rs.compute(class.2, class.1)
+  
   class.1.1.ratio  <- rs.compute(class.1.1, list)
   class.1.1.merge <- merge(class.1.1.ratio, class.1.ratio, by = "names.x.", all.x = T)
   decrease.number <- sum(class.1.1.merge$Ratio.x < class.1.1.merge$Ratio.y)
@@ -95,6 +96,13 @@ end.split <- function(class.1, class.1.1, list){
     # keep PCA?
   }
 }
+
+class.1.1.1.ratio  <- rs.compute(class.1.1.1, list)
+class.1.1.1.merge <- merge(class.1.1.1.ratio, class.1.1.ratio, by = "names.x.", all.x = T)
+decrease.number <- sum(class.1.1.1.merge$Ratio.x < class.1.1.1.merge$Ratio.y)
+decrease.ratio <- decrease.number/ncol(class.1.1.1.ratio)
+
+
 
   class.1 <- data.frame(PCA(mysample[,-ncol(mysample)])[1])
   class.2 <- data.frame(PCA(mysample[,-ncol(mysample)])[2])
