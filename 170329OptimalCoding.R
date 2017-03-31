@@ -78,6 +78,7 @@ PCA <- function(x){
   return(list(class.1, class.2))
 }
 
+# end.split的输入为当前节点的两个父节点、自身节点及其他所有子节点
 end.split <- function(class.1, class.2, class.1.1, list){
   end.split <- F
   class.1.ratio <- rs.compute(class.1, class.2)
@@ -98,7 +99,10 @@ end.split <- function(class.1, class.2, class.1.1, list){
   class.2 <- data.frame(PCA(mysample[,-ncol(mysample)])[2])
   class.1.1 <- data.frame(PCA(class.1)[1])
   class.1.2 <- data.frame(PCA(class.1)[2])
-
+  class.2.1 <- data.frame(PCA(class.2)[1])
+  class.2.2 <- data.frame(PCA(class.2)[2])
+  
+  end.split(class.1, class.2, class.1.1, list(class.1.2, class.2.1, class.2.2))
 
 
 
