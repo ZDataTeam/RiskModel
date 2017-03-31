@@ -79,11 +79,11 @@ PCA <- function(x){
   return(list(class.1, class.2))
 }
 
-# end.split的输入为当前节点的两个父节点、自身节点及其他所有子节点
-end.split <- function(class.1, class.2, class.1.1, list){
+# end.split的输入为当前节点的父节点、自身节点及其他所有子节点
+end.split <- function(class.1, class.1.1, list){
   end.split <- F
   class.1.ratio <- rs.compute(class.1, class.2)
-  class.2.ratio <- rs.compute(class.2, class.1)
+  # class.2.ratio <- rs.compute(class.2, class.1)
   class.1.1.ratio  <- rs.compute(class.1.1, list)
   class.1.1.merge <- merge(class.1.1.ratio, class.1.ratio, by = "names.x.", all.x = T)
   decrease.number <- sum(class.1.1.merge$Ratio.x < class.1.1.merge$Ratio.y)
@@ -350,37 +350,24 @@ library(glmnet)
 attach(reductionSample)
 
 fullmod <- glm(OVERDUE ~., data = reductionSample, family = binomial)
-summary(fullmod)$coefficents[,4]
 coefficients.fullmod <- summary(fullmod)$coefficients[,4]
 which(coefficients.fullmod < 0.05)
-formula(fullmod)
 
 nothing <- glm(OVERDUE ~ 1, data = reductionSample, family = binomial)
 summary(nothing)
 
-
 backwards <- step(fullmod)
-summary(backwards)
+coefficients.backwards <- summary(backwards)$coefficients[,4]
+which(coefficients.backwards < 0.05)
 
 forwards <- step(nothing, scope = list(lower = formula(nothing), upper = formula(fullmod)), direction = "forward")
-summary(forwards)
-
+coefficients.forwards <- summary(forwards)$coefficients[,4]
+which(coefficients.forwards < 0.05)
 
 bothways <- step(nothing, list(lower = formula(nothing), upper = formula(fullmod)), direction = "both", trace = 0)
-summary(bothways)
+coefficients.bothways <- summary(bothways)$coefficients[,4]
+which(coefficients.bothways < 0.05)
 
-finalModel <- function(x){
-  for(i in x){
-    assign(paste("coefficients.", i, sep = ""), summary(i)$coefficients[,4])
-    variable.selected <- (which(get(paste("coefficients.", i, sep = "")) < 0.05))
-    return(c(i, variable.selected))
-  }
-}
-
-finalModel(list(fullmod,backwards,forwards,bothways))
-finalModel(backwards)
-finalModel(forwards)
-finalModel(bothways)
 
 glm.selection <- function(x){
   Plist <- c()
