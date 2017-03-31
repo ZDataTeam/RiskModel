@@ -86,7 +86,7 @@ end.split <- function(class.1, class.2, class.1.1, list){
   class.2.ratio <- rs.compute(class.2, class.1)
   class.1.1.ratio  <- rs.compute(class.1.1, list)
   class.1.1.merge <- merge(class.1.1.ratio, class.1.ratio, by = "names.x.", all.x = T)
-  decrease.number <- sum(class.1.ratio$Ratio.x < class.1.ratio$Ratio.y)
+  decrease.number <- sum(class.1.1.merge$Ratio.x < class.1.1.merge$Ratio.y)
   decrease.ratio <- decrease.number/ncol(class.1.1.ratio)
   if(decrease.ratio >= 0.5 | ncol(class.1.1) == 1){
     end.split <- T
@@ -348,25 +348,63 @@ names(reductionSample) <- c("APP_OPEN_RD30",
 # Stepwise with Logistics
 library(glmnet)
 attach(reductionSample)
+
+fullmod <- glm(OVERDUE ~., data = reductionSample, family = binomial)
+summary(fullmod)$coefficents[,4]
+coefficients.fullmod <- summary(fullmod)$coefficients[,4]
+which(coefficients.fullmod < 0.05)
+formula(fullmod)
+
+nothing <- glm(OVERDUE ~ 1, data = reductionSample, family = binomial)
+summary(nothing)
+
+
+backwards <- step(fullmod)
+summary(backwards)
+
+forwards <- step(nothing, scope = list(lower = formula(nothing), upper = formula(fullmod)), direction = "forward")
+summary(forwards)
+
+
+bothways <- step(nothing, list(lower = formula(nothing), upper = formula(fullmod)), direction = "both", trace = 0)
+summary(bothways)
+
+finalModel <- function(x){
+  for(i in x){
+    assign(paste("coefficients.", i, sep = ""), summary(i)$coefficients[,4])
+    variable.selected <- (which(get(paste("coefficients.", i, sep = "")) < 0.05))
+    return(c(i, variable.selected))
+  }
+}
+
+finalModel(list(fullmod,backwards,forwards,bothways))
+finalModel(backwards)
+finalModel(forwards)
+finalModel(bothways)
+
 glm.selection <- function(x){
   Plist <- c()
   add.index <- c()
   for(i in 1:ncol(x)){
-    if(is.null(add.index)){
-      assign(paste("glm.fit", i, sep = ""),
-             glm(OVERDUE ~ x[,i], data = x, family = binomiall))
-      Plist[i] <- summary(get(paste("glm.fit", i, sep = "")))$coefficients[2,4]
-      
-    } else if(!(i %in% add.index)){
-      assign(paste("glm.fit", i, sep = ""),
-             glm(OVERDUE ~ x[,i] + add.variable, data = x, family = binomiall))
-      Plist[i] <- summary(get(paste("glm.fit", i, sep = "")))$coefficients[2,4]
+    assign(paste("glm.fit", i, sep = ""),
+            glm(OVERDUE ~ x[,i], data = x, family = binomiall))
+    Plist[i] <- summary(get(paste("glm.fit", i, sep = "")))$coefficients[2,4]
+  }
+  add.index <- append(add.index, which.min(Plist))
+  # add.variable <- x[,add.index]
+  for(i in 1:ncol(x)){
+    if(!(i %in% add.index)){
+    assign(paste("glm.fit", i, sep = ""),
+           glm(OVERDUE ~ x[,i] + x[,add.index], data = x, family = binomiall))
+    Plist[i] <- summary(get(paste("glm.fit", i, sep = "")))$coefficients[2,4]
     }
   }
   add.index <- append(add.index, which.min(Plist))
-  add.variable <- x[,add.index]
+  # add.variable <- append(x[,add.index])
 }
 glm.selection(reductionSample)
+
+step
 
 for(i in 1:length(reductionSample)){
   if(!(i %in% c("7","5","1","16","18","3","17","2","10"))){
