@@ -71,9 +71,10 @@ library(corrplot)
 
 PCA <- function(x){
   pr.out.class <- prcomp(x, scale = T)
-  cor.sample <- cbind(x, pr.out.class$x[,1:2])
-  cor.temp <- cor(cor.sample)
-  cor.result <- cor.temp[-(nrow(cor.temp)-1):-nrow(cor.temp),(ncol(cor.temp)-1):ncol(cor.temp)]
+  cor.result <- cor(x,pr.out.class$x[,1:2])
+  # cor.sample <- cbind(x, pr.out.class$x[,1:2])
+  # cor.temp <- cor(cor.sample)
+  # cor.result <- cor.temp[-(nrow(cor.temp)-1):-nrow(cor.temp),(ncol(cor.temp)-1):ncol(cor.temp)]
   # corrplot(cor.result, tl.cex = 0.5)
   class.1 <- x[,which(cor.result[,1] >= cor.result[,2])]
   class.2 <- x[,which(cor.result[,1] < cor.result[,2])]
@@ -109,6 +110,9 @@ end.split <- function(class.1, class.2, class.1.1, list){
 
 
 rs.compute <- function(x,y){
+  r.squared <- c()
+  add.r.squared <- c()
+  Ratio <- c()
   temp <- x
   for(i in 1:length(x)){
     temp[, 1:i] <- x[, i:1]
@@ -129,14 +133,6 @@ rsoutput <- rs.compute(class.1, class.2)
 
 temp <- PCA(mysample[,-ncol(mysample)])
 
-
-
-class.1.1 <- data.frame(PCA(class.1)[1])
-class.1.2 <- data.frame(PCA(class.1)[2])
-
-
-class.2.1 <- data.frame(PCA(class.2)[1])
-class.2.2 <- data.frame(PCA(class.2)[2])
 
 
 pr.out.class <- prcomp(mysample[,-ncol(mysample)], scale = TRUE)
@@ -237,10 +233,11 @@ rsCompute <- function(x,y){
   temp <- x
   for(i in 1:length(x)){
     temp[, 1:i] <- x[, i:1]
-    r.squared[i] <-  summary(lm(BANK_TYPE~.-BANK_TYPE, data = temp))$r.squared
+    names(temp)[1] <- "Ddiff"
+    r.squared[i] <-  summary(lm(Ddiff~.-Ddiff, data = temp))$r.squared
     dtAdd <- data.frame(temp[,1], y)
-    names(dtAdd)[1] <- "BANK_TYPE"
-    add.r.squared[i] <- summary(lm(BANK_TYPE~.-BANK_TYPE, data = dtAdd))$r.squared
+    names(dtAdd)[1] <- "Ddiff"
+    add.r.squared[i] <- summary(lm(Ddiff~.-Ddiff, data = dtAdd))$r.squared
     Ratio[i] <- r.squared[i]/add.r.squared[i]
   }
   return(data.frame(names(x),Ratio))
@@ -253,19 +250,20 @@ rsCompute <- function(x,y,m,n){
   temp <- x
   for(i in 1:length(x)){
     temp[, 1:i] <- x[, i:1]
-    r.squared[i] <-  summary(lm(BANK_TYPE~.-BANK_TYPE, data = temp))$r.squared
+    names(temp)[1] <- "Ddiff"
+    r.squared[i] <-  summary(lm(Ddiff~.-Ddiff, data = temp))$r.squared
     
     dtAddy <- data.frame(temp[,1], y)
-    names(dtAddy)[1] <- "BANK_TYPE"
-    add.r.squaredy[i] <- summary(lm(BANK_TYPE~.-BANK_TYPE, data = dtAddy))$r.squared
+    names(dtAddy)[1] <- "Ddiff"
+    add.r.squaredy[i] <- summary(lm(Ddiff~.-Ddiff, data = dtAddy))$r.squared
     
     dtAddm <- data.frame(temp[,1], m)
-    names(dtAddm)[1] <- "BANK_TYPE"
-    add.r.squaredm[i] <- summary(lm(BANK_TYPE~.-BANK_TYPE, data = dtAddm))$r.squared
+    names(dtAddm)[1] <- "Ddiff"
+    add.r.squaredm[i] <- summary(lm(Ddiff~.-Ddiff, data = dtAddm))$r.squared
     
     dtAddn <- data.frame(temp[,1], n)
-    names(dtAddn)[1] <- "BANK_TYPE"
-    add.r.squaredn[i] <- summary(lm(BANK_TYPE~.-BANK_TYPE, data = dtAddn))$r.squared
+    names(dtAddn)[1] <- "Ddiff"
+    add.r.squaredn[i] <- summary(lm(Ddiff~.-Ddiff, data = dtAddn))$r.squared
     
     
     Ratio[i] <- r.squared[i]/max(add.r.squaredy[i], add.r.squaredm[i], add.r.squaredn[i])
@@ -279,6 +277,7 @@ rsCompute <- function(x,y,a,b,c){
   temp <- x
   for(i in 1:length(x)){
     temp[, 1:i] <- x[, i:1]
+    names(temp)[1] <- "Ddiff"
     r.squared[i] <-  summary(lm(Ddiff~.-Ddiff, data = temp))$r.squared
     
     dtAddy <- data.frame(temp[,1], y)
@@ -351,7 +350,26 @@ names(reductionSample) <- c("APP_OPEN_RD30",
 # Stepwise with Logistics
 library(glmnet)
 attach(reductionSample)
-Plist1 <- c()
+glm.selection <- function(x){
+  Plist <- c()
+  add.index <- c()
+  for(i in 1:ncol(x)){
+    if(is.null(add.index)){
+      assign(paste("glm.fit", i, sep = ""),
+             glm(OVERDUE ~ x[,i], data = x, family = binomiall))
+      Plist[i] <- summary(get(paste("glm.fit", i, sep = "")))$coefficients[2,4]
+      
+    } else if(!(i %in% add.index)){
+      assign(paste("glm.fit", i, sep = ""),
+             glm(OVERDUE ~ x[,i] + add.variable, data = x, family = binomiall))
+      Plist[i] <- summary(get(paste("glm.fit", i, sep = "")))$coefficients[2,4]
+    }
+  }
+  add.index <- append(add.index, which.min(Plist))
+  add.variable <- x[,add.index]
+}
+glm.selection(reductionSample)
+
 for(i in 1:length(reductionSample)){
   if(!(i %in% c("7","5","1","16","18","3","17","2","10"))){
     assign(paste("glm.fit", i, sep = ""),
