@@ -97,12 +97,6 @@ end.split <- function(class.1, class.2, class.1.1, list){
   }
 }
 
-class.1.1.1.ratio  <- rs.compute(class.1.1.1, list)
-class.1.1.1.merge <- merge(class.1.1.1.ratio, class.1.1.ratio, by = "names.x.", all.x = T)
-decrease.number <- sum(class.1.1.1.merge$Ratio.x < class.1.1.1.merge$Ratio.y)
-decrease.ratio <- decrease.number/ncol(class.1.1.1.ratio)
-
-
 
   class.1 <- data.frame(PCA(mysample[,-ncol(mysample)])[1])
   class.2 <- data.frame(PCA(mysample[,-ncol(mysample)])[2])
@@ -137,10 +131,9 @@ rs.compute <- function(x,y){
 rsoutput <- rs.compute(class.1, class.2)
 
 
-temp <- PCA(mysample[,-ncol(mysample)])
 
 
-
+# Remained to be optimal
 pr.out.class <- prcomp(mysample[,-ncol(mysample)], scale = TRUE)
 classBind <- cbind(mysample[,-ncol(mysample)], pr.out.class$x[,1:2])
 corClassResult <- cor(classBind)[-nrow(classBind),(ncol(classBind)-1):ncol(classBind)]
@@ -360,6 +353,9 @@ attach(reductionSample)
 fullmod <- glm(OVERDUE ~., data = reductionSample, family = binomial)
 coefficients.fullmod <- summary(fullmod)$coefficients[,4]
 which(coefficients.fullmod < 0.05)
+final.fullmod <- glm(OVERDUE ~ APP_OPEN_RD30+APP_OPEN_RD7+CT0+QUALITY1+ORATE+ORI_CHNL1,
+                     data = reductionSample, family = binomial)
+
 
 nothing <- glm(OVERDUE ~ 1, data = reductionSample, family = binomial)
 summary(nothing)
@@ -367,39 +363,82 @@ summary(nothing)
 backwards <- step(fullmod)
 coefficients.backwards <- summary(backwards)$coefficients[,4]
 which(coefficients.backwards < 0.05)
+final.backwards <- glm(OVERDUE ~ APP_OPEN_RD30+APP_OPEN_RD7+TXNAMT1011+CT0+QUALITY1+ORATE+ORI_CHNL1,
+                       data = reductionSample, family = binomial)
 
 forwards <- step(nothing, scope = list(lower = formula(nothing), upper = formula(fullmod)), direction = "forward")
 coefficients.forwards <- summary(forwards)$coefficients[,4]
 which(coefficients.forwards < 0.05)
+final.forwards <- glm(OVERDUE ~ TXNAMT1011+APP_OPEN_RD30+CT0+QUALITY1+ORI_CHNL1+APP_OPEN_RD7+ORATE,
+                      data = reductionSample, family = binomial)
+
 
 bothways <- step(nothing, list(lower = formula(nothing), upper = formula(fullmod)), direction = "both", trace = 0)
 coefficients.bothways <- summary(bothways)$coefficients[,4]
 which(coefficients.bothways < 0.05)
+final.bothways <- glm(OVERDUE ~ TXNAMT1011+APP_OPEN_RD30+CT0+QUALITY1+ORI_CHNL1+APP_OPEN_RD7+ORATE,
+                      data = reductionSample, family = binomial)
 
 
+# Boundary: one star
 glm.selection <- function(x){
   Plist <- c()
-  add.index <- c()
+  index <- NULL  #added item
+  index.list <- c()  #added list
+
   for(i in 1:ncol(x)){
-    assign(paste("glm.fit", i, sep = ""),
-            glm(OVERDUE ~ x[,i], data = x, family = binomiall))
-    Plist[i] <- summary(get(paste("glm.fit", i, sep = "")))$coefficients[2,4]
+    assign(paste("glm.fit.", i, sep = ""),
+           glm(OVERDUE ~ x[,i], data = x, family = binomial))
+    Plist[i] <- summary(get(paste("glm.fit.", i, sep = "")))$coefficients[2,4]
+    # return(Plist < 0.05)
   }
-  add.index <- append(add.index, which.min(Plist))
-  # add.variable <- x[,add.index]
-  for(i in 1:ncol(x)){
-    if(!(i %in% add.index)){
-    assign(paste("glm.fit", i, sep = ""),
-           glm(OVERDUE ~ x[,i] + x[,add.index], data = x, family = binomiall))
-    Plist[i] <- summary(get(paste("glm.fit", i, sep = "")))$coefficients[2,4]
+  while(any(Plist < 0.05)){
+    index <- which.min(Plist)
+    index.list <- append(index.list, index)
+    for(i in 1:ncol(x)){
+      while(!(i %in% index.list)){
+      current.glm <- glm(OVERDUE ~ x[,index], data = x, family = binomial)
+      current.glm <- update(current.glm, ~.+x[,i])
+      Plist <- c()
+      Plist[i] <- summary(current.glm)$coefficients[,4]
+      }
+    }
+    Recursion(x, Plist, index.list, current.glm)
+    Recursion <- function(x,Plist,index.list,current.glm){
+      while(all(Plist) < 0.05){
+        # print(all(Plist))
+        index <- which.min(Plist)
+        index.list <- append(index.list, index)
+        for(i in 1:ncol(x)){
+          while(!(i %in% index.list)){
+            current.glm <- glm(OVERDUE ~ x[,index], data = x, family = binomial)
+            current.glm <- update(current.glm, ~.+x[,i])
+            Plist <- c()
+            Plist[i] <- summary(current.glm)$coefficients[,4]
+          }
+        }
+        return(current.glm)
+      }
+      return(Recursion(x, Plist, index.list, current.glm))
     }
   }
-  add.index <- append(add.index, which.min(Plist))
-  # add.variable <- append(x[,add.index])
 }
+
 glm.selection(reductionSample)
 
-step
+
+# Model for verify
+stepwiseGlm <- glm(OVERDUE ~ CT0+TXNAMT1011+APP_OPEN_RD30+QUALITY1+ORI_CHNL1+ORATE+APP_OPEN_RD7,
+                   data = reductionSample, family = binomial)
+summary(stepwiseGlm)
+
+
+
+
+summary(glm(OVERDUE ~reductionSample[,1], data = reductionSample, family = binomial))$coefficients[,4] < 0.05
+temp <- glm(OVERDUE ~reductionSample[,1], data = reductionSample, family = binomial)
+update(glm(OVERDUE~reductionSample[,1], data = reductionSample, family = binomial), ~.+reductionSample[,2])
+
 
 for(i in 1:length(reductionSample)){
   if(!(i %in% c("7","5","1","16","18","3","17","2","10"))){
@@ -418,14 +457,29 @@ stepwiseGlm <- glm(OVERDUE ~ CT0+TXNAMT1011+APP_OPEN_RD30+QUALITY1+ORI_CHNL1+APP
                    data = reductionSample, family = binomial)
 summary(stepwiseGlm)
 
-glm.probs = predict(stepwiseGlm, type = "response")
 
-contrasts(OVERDUE)
-glm.pred = rep("0", nrow(reductionSample))
-glm.pred[glm.probs>.5] = "1"
-table(glm.pred, OVERDUE)
-detach(reductionSample)
 
 library(ggplot2)
-qplot(seq(-200,200, length = 5771), sort(glm.probs), col = "response")
+compare.table <- function(x){
+  glm.probs <- predict(x, type = "response")
+  contrasts(factor(reductionSample$OVERDUE))
+  glm.pred <- rep("0", nrow(reductionSample))
+  glm.pred[glm.probs > 0.5] = "1"
+  table.rate <- table(glm.pred, factor(reductionSample$OVERDUE))
+  print(qplot(seq(-200,200, length = 5771), sort(glm.probs), col = "response"))
+  print(table.rate)
+  total.correct.rate <- (table.rate[1,1]+table.rate[2,2])/(sum(table.rate))
+  overdue.correct.rate <- table.rate[2,2]/(table.rate[1,2]+table.rate[2,2])
+  return(c(total.correct.rate, overdue.correct.rate))
+}
+
+compare.table(stepwiseGlm)
+compare.table(final.fullmod)
+compare.table(final.backwards)
+compare.table(final.forwards)
+compare.table(final.bothways)
+
+
+
+
 
