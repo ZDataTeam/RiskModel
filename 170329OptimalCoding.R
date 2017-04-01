@@ -61,7 +61,7 @@ for(i in 1:length(mysample)){
   }
 }
 
-infovalue <- data.frame(iv,row.names = substr(va,1,(nchar(va)-3)))
+infovalue <- data.frame(names(mysample),iv,row.names = substr(va,1,(nchar(va)-3)))
 infovalue <- infovalue[-which(is.infinite(infovalue$iv)),]
 
 # PCA CLASSIFIED
@@ -98,6 +98,22 @@ end.split <- function(class.1, class.2, class.1.1, list){
 }
 
 
+# When PCA finished, consider ceiling(max(1, IV(currentClass)/IV(allClass)*numbers of index in current class))
+# to determine the number left in each class
+index.left <- function(class.list){
+  reduction.sample <- c()
+  for(i in class.list){
+    class.sample <- merge(t(i), infovalue, by = row.names, all.x = T)
+    class.sample.IV <- sum(class.sample.IV[,ncol(class.sample.IV)])
+    all.class.IV <- sum(infovalue[,2])
+    number.left <- ceiling(max(1, class.sample.IV/all.class.IV*ncol(class.sample)))
+    class.reduction <- sort(i, decreasing = T)
+    reduction.sample <- append(reduction.sample, class.reduction)
+  }
+  return(reduction.sample)
+}
+
+
   class.1 <- data.frame(PCA(mysample[,-ncol(mysample)])[1])
   class.2 <- data.frame(PCA(mysample[,-ncol(mysample)])[2])
   class.1.1 <- data.frame(PCA(class.1)[1])
@@ -107,6 +123,9 @@ end.split <- function(class.1, class.2, class.1.1, list){
   
   end.split(class.1, class.2, class.1.1, list(class.1.2, class.2.1, class.2.2))
 
+  
+  first.reduction.sample <- index.left(PCARESULT)
+  
 
 
 rs.compute <- function(x,y){
@@ -390,7 +409,6 @@ glm.selection <- function(x){
     assign(paste("glm.fit.", i, sep = ""),
            glm(OVERDUE ~ x[,i], data = x, family = binomial))
     Plist[i] <- summary(get(paste("glm.fit.", i, sep = "")))$coefficients[2,4]
-    # return(Plist < 0.05)
   }
   while(any(Plist < 0.05)){
     index <- which.min(Plist)
@@ -417,7 +435,7 @@ glm.selection <- function(x){
             Plist[i] <- summary(current.glm)$coefficients[,4]
           }
         }
-        return(current.glm)
+        print(current.glm)
       }
       return(Recursion(x, Plist, index.list, current.glm))
     }
