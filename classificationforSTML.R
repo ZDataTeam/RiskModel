@@ -1,20 +1,17 @@
-# DATA INPUT
-# Group stlm_ins_circle as 0 and 1
-# mySample <- read.csv("E:\\Allinpay\\Data\\STLM_INS_CIRCLE\\01normalize\\01sample.csv",
-#                      header = TRUE,
-#                      stringsAsFactors = TRUE,
-#                      encoding = "UTF-8")
-# mySample$X.U.FEFF.mcht_cd <- as.factor(mySample$X.U.FEFF.mcht_cd)
-# rownames(mySample) <- mySample[,1]
-# mySample <- mySample[,-1]
-# mySample$stlm_ins_circle <- substr(mySample$stlm_ins_circle,1,1)
-# mySample <- mySample[,-7:-9]
-# mySample[which(mySample$stlm_ins_circle == "2"),] <- transform(mySample[which(mySample$stlm_ins_circle == "2"),], stlm_ins_circle = "1")
-# mySample$stlm_ins_circle <- as.factor(mySample$stlm_ins_circle)
+# TO DO!!!!
+  
+  # COMPARISON OF SYSTEM.TIME()
+  # AROUND (18+18):(36+36):(230+230) WITH K = 5 AND KERNEL AND GAMMA SET AS DEFAULT
 
-# Add random col
-# mySample <- read.csv("E:\\Allinpay\\Data\\STLM_INS_CIRCLE\\workingPaper\\data\\sample.csv",
-mySample <- read.csv("/Users/mk/Documents/RiskModel/zsy_signal_pos/UpdateDataForClassification.csv",
+  # COMPARISON OF ACCURACY
+  # AROUND (80%:99%:87%) WITH WITH K = 5 AND KERNEL AND GAMMA SET AS DEFAULT
+  
+  # TRY MULTI COMBINATION OF FUNCTION
+
+
+# DATA INPUT
+mySample <- read.csv("E:\\Allinpay\\Data\\STLM_INS_CIRCLE\\workingPaper\\data\\sample.csv",
+# mySample <- read.csv("/Users/mk/Documents/RiskModel/zsy_signal_pos/UpdateDataForClassification.csv",
                      header = TRUE,
                      stringsAsFactors = TRUE)
 options(scipen=3)
@@ -24,9 +21,10 @@ mySample$stlm_ins_circle <- as.factor(mySample$stlm_ins_circle)
 mySample$SUM <- Reduce('+',mySample[,2:9])
 
 
+
 # NORMAL DISTRIBUTION
+# Label establish
 mySample$NORM <- rnorm(length(mySample$stlm_ins_circle))
-mySample$SUM.NORM <- apply(mySample[,10:11],1,sum)
 mySample$SUM.NORM <- mySample$SUM + mySample$NORM
 mySample$channel.Nor <- rep("0", length(mySample$stlm_ins_circle))
 mySample[which(mySample$SUM.NORM > 0),] <- transform(mySample[which(mySample$SUM.NORM > 0),], channel.Nor = "1")
@@ -60,14 +58,11 @@ mySample$channel.Ttest <- rep("0", length(mySample$stlm_ins_circle))
 mySample[which(mySample$SUM.TTEST > 0),] <- transform(mySample[which(mySample$SUM.TTEST > 0),], channel.Ttest = "1")
 mySample$channel.Ttest <- as.factor(mySample$channel.Ttest)
 
-# write.csv(mySample, file = "E:\\Allinpay\\Data\\STLM_INS_CIRCLE\\workingPaper\\data\\SampleWithLable.csv")
+# Samplit preparation with spliting into train and test
+# Sample split into train and test
+sample.train <- mySample[which(mySample$stlm_ins_circle == "1"),-1]
+sample.test <- mySample[which(mySample$stlm_ins_circle == "0"),-1]
 
-sample.train <- mySample[which(mySample$stlm_ins_circle == "1"),2:25]
-sample.test <- mySample[which(mySample$stlm_ins_circle == "0"),2:25]
-
-# distribution <- c(13, 16, 19, 22, 25)
-
-# Data Preparation
 sample.train.Nor <- sample.train[,c(1:8,12)]
 sample.test.Nor <- sample.test[,c(1:8,12)]
 
@@ -83,118 +78,181 @@ sample.test.Poi <- sample.test[,c(1:8,21)]
 sample.train.Ttest <- sample.train[,c(1:8,24)]
 sample.test.Ttest <- sample.test[,c(1:8,24)]
 
-# Distance-based
-center.Nor.1 <- colMeans(subset(sample.train.Nor, channel.Nor == "1")[,-ncol(sample.train.Nor)])
-center.Nor.0 <- colMeans(subset(sample.train.Nor, channel.Nor == "0")[,-ncol(sample.train.Nor)])
 
-center.Unif.1 <- colMeans(subset(sample.train.Unif, channel.Unif == "1")[,-ncol(sample.train.Unif)])
-center.Unif.0 <- colMeans(subset(sample.train.Unif, channel.Unif == "0")[,-ncol(sample.train.Unif)])
+  # DISTANCE-BASED
+  # Center Matrix
+  center.Nor.1 <- colMeans(subset(sample.train.Nor, channel.Nor == "1")[,-ncol(sample.train.Nor)])
+  center.Nor.0 <- colMeans(subset(sample.train.Nor, channel.Nor == "0")[,-ncol(sample.train.Nor)])
 
-center.Exp.1 <- colMeans(subset(sample.train.Exp, channel.Exp == "1")[,-ncol(sample.train.Exp)])
-center.Exp.0 <- colMeans(subset(sample.train.Exp, channel.Exp == "0")[,-ncol(sample.train.Exp)])
+  center.Unif.1 <- colMeans(subset(sample.train.Unif, channel.Unif == "1")[,-ncol(sample.train.Unif)])
+  center.Unif.0 <- colMeans(subset(sample.train.Unif, channel.Unif == "0")[,-ncol(sample.train.Unif)])
 
-center.Poi.1 <- colMeans(subset(sample.train.Poi, channel.Poi == "1")[,-ncol(sample.train.Poi)])
-center.Poi.0 <- colMeans(subset(sample.train.Poi, channel.Poi == "0")[,-ncol(sample.train.Poi)])
+  center.Exp.1 <- colMeans(subset(sample.train.Exp, channel.Exp == "1")[,-ncol(sample.train.Exp)])
+  center.Exp.0 <- colMeans(subset(sample.train.Exp, channel.Exp == "0")[,-ncol(sample.train.Exp)])
 
-center.Ttest.1 <- colMeans(subset(sample.train.Ttest, channel.Ttest == "1")[,-ncol(sample.train.Ttest)])
-center.Ttest.0 <- colMeans(subset(sample.train.Ttest, channel.Ttest == "0")[,-ncol(sample.train.Ttest)])
+  center.Poi.1 <- colMeans(subset(sample.train.Poi, channel.Poi == "1")[,-ncol(sample.train.Poi)])
+  center.Poi.0 <- colMeans(subset(sample.train.Poi, channel.Poi == "0")[,-ncol(sample.train.Poi)])
 
-cnames <- c("Zd_time", "Zmale", "Zage", "Ztotal_amt", "Ztotal_cnt", "ZifType0", "ZifType1", "ZifType2")
-rnames <- c("center.Nor.1", "center.Nor.0", "center.Unif.1", "center.Unif.0", "center.Exp.1",
+  center.Ttest.1 <- colMeans(subset(sample.train.Ttest, channel.Ttest == "1")[,-ncol(sample.train.Ttest)])
+  center.Ttest.0 <- colMeans(subset(sample.train.Ttest, channel.Ttest == "0")[,-ncol(sample.train.Ttest)])
+
+  cnames <- c("Zd_time", "Zmale", "Zage", "Ztotal_amt", "Ztotal_cnt", "ZifType0", "ZifType1", "ZifType2")
+  rnames <- c("center.Nor.1", "center.Nor.0", "center.Unif.1", "center.Unif.0", "center.Exp.1",
             "center.Exp.0", "center.Poi.1", "center.Poi.0", "center.Ttest.1", "center.Ttest.0")
-center <- matrix(c(center.Nor.0,center.Nor.1,
+  center <- matrix(c(center.Nor.0,center.Nor.1,
             center.Unif.0, center.Unif.1,
             center.Exp.0, center.Exp.1,
             center.Poi.0, center.Poi.1,
             center.Ttest.0, center.Ttest.1), 10, 8, byrow = T,
             dimnames = list(rnames, cnames))
 
-distanceCompute <- function(x, type){
-  res <- c()
-    #TODO:
-    # Somehow a waste of memory
-    # try R for loop
-    for( irow in 1:nrow(x) ) {
-       d1 <- dist(rbind(center[1,], x[irow,-ncol(x)]), method = "euclidian")[1]  # [3:nrow(x),1:2]
-       d0 <- dist(rbind(center[2,], x[irow,-ncol(x)]), method = "euclidian")[1]  # [3:nrow(x),1:2]
-       if(d1 <= d0){
-            res = append(res,c(1))
-        }else{
-            res = append(res,c(0))
-        }
+  # General euclidian distance compute
+  dist.compute <- function(x,n){
+    res <- c()
+    distance.0 <- dist(rbind(center[2*n-1,], x), method = "euclidian")
+    distance.1 <- dist(rbind(center[2*n,], x), method = "euclidian")
+    if(distance.1 <= distance.0){
+      res <- 1
+    }else{
+      res <- 0
     }
-  return(res)
-}
+    return(res)
+  }
 
+  # Classification Result and verification 
+  test.class.Nor <- apply(sample.test.Nor[,1:8], 1, dist.compute, n = 1)
+  table(sample.test.Nor$channel.Nor, test.class.Nor)
+  
+  test.class.Unif <- apply(sample.test.Unif[,1:8], 1, dist.compute, n = 2)
+  table(sample.test.Unif$channel.Unif, test.class.Unif)
+  
+  test.class.Exp <- apply(sample.test.Exp[,1:8], 1, dist.compute, n = 3)
+  table(sample.test.Exp$channel.Exp, test.class.Exp)
+  
+  test.class.Poi <- apply(sample.test.Poi[,1:8], 1, dist.compute, n = 4)
+  table(sample.test.Poi$channel.Poi, test.class.Poi)
+  
+  test.class.Ttest <- apply(sample.test.Ttest[,1:8], 1, dist.compute, n = 5)
+  table(sample.test.Ttest$channel.Ttest, test.class.Ttest)
+    
+  # K-NN
+  
+  library(class)
+  set.seed(1)
+  
+  # K-NN MODEL
+  knn.pred.Nor <- knn(sample.train.Nor, sample.test.Nor, sample.train.Nor$channel.Nor, k = 5)
+  # Verification of K-NN
+  table(knn.pred.Nor, sample.test.Nor$channel.Nor)
+  
+  knn.pred.Unif <- knn(sample.train.Unif, sample.test.Unif, sample.train.Unif$channel.Unif, k = 5)
+  table(knn.pred.Unif, sample.test.Unif$channel.Unif)
 
-# dist(rbind(center[1,], sample.test.Nor[1,-ncol(sample.test.Nor)]), method = "euclidian")
+  knn.pred.Exp <- knn(sample.train.Exp, sample.test.Exp, sample.train.Exp$channel.Exp, k = 5)
+  table(knn.pred.Exp, sample.test.Exp$channel.Exp)
 
+  knn.pred.Poi <- knn(sample.train.Poi, sample.test.Poi, sample.train.Poi$channel.Poi , k = 5)
+  table(knn.pred.Poi, sample.test.Poi$channel.Poi)
 
+  knn.pred.Ttest <- knn(sample.train.Ttest, sample.test.Ttest, sample.train.Ttest$channel.Ttest , k = 5)
+  table(knn.pred.Ttest , sample.test.Ttest$channel.Ttest)
+  
+  # SVM
+  
+  set.seed(1)
+  library(e1071)
+  
+  # Nor
+  # Set the label as "1" and "-1"
+  sample.train.Nor.svm <- sample.train.Nor
+  sample.train.Nor.svm$channel.Nor <- as.character(sample.train.Nor.svm$channel.Nor)
+  sample.train.Nor.svm$channel.Nor <- as.numeric(sample.train.Nor.svm$channel.Nor)
+  sample.train.Nor.svm[which(sample.train.Nor.svm$channel.Nor == 0),] <- transform(sample.train.Nor.svm[which(sample.train.Nor.svm$channel.Nor == 0),], channel.Nor = -1)
+  
+  sample.test.Nor.svm <- sample.test.Nor
+  sample.test.Nor.svm$channel.Nor <- as.character(sample.test.Nor.svm$channel.Nor)
+  sample.test.Nor.svm$channel.Nor <- as.numeric(sample.test.Nor.svm$channel.Nor)
+  sample.test.Nor.svm[which(sample.test.Nor.svm$channel.Nor == 0),] <- transform(sample.test.Nor.svm[which(sample.test.Nor.svm$channel.Nor == 0),], channel.Nor = -1)
+  svmfit.Nor <- svm(channel.Nor~., data = sample.train.Nor.svm)
+  pred.svm.Nor <- predict(svmfit.Nor, sample.test.Nor.svm)
+  
+  # Verification of SVM
+  pred.svm.Nor <- ifelse(pred.svm.Nor < 0, -1, 1)
+  table(pred.svm.Nor, sample.test.Nor.svm$channel.Nor)
+  
+  # Unif
+  # Set the label as "1" and "-1"
+  sample.train.Unif.svm <- sample.train.Unif
+  sample.train.Unif.svm$channel.Unif <- as.character(sample.train.Unif.svm$channel.Unif)
+  sample.train.Unif.svm$channel.Unif <- as.numeric(sample.train.Unif.svm$channel.Unif)
+  sample.train.Unif.svm[which(sample.train.Unif.svm$channel.Unif == 0),] <- transform(sample.train.Unif.svm[which(sample.train.Unif.svm$channel.Unif == 0),], channel.Unif = -1)
+  
+  sample.test.Unif.svm <- sample.test.Unif
+  sample.test.Unif.svm$channel.Unif <- as.character(sample.test.Unif.svm$channel.Unif)
+  sample.test.Unif.svm$channel.Unif <- as.numeric(sample.test.Unif.svm$channel.Unif)
+  sample.test.Unif.svm[which(sample.test.Unif.svm$channel.Unif == 0),] <- transform(sample.test.Unif.svm[which(sample.test.Unif.svm$channel.Unif == 0),], channel.Unif = -1)
+  svmfit.Unif <- svm(channel.Unif~., data = sample.train.Unif.svm)
+  pred.svm.Unif <- predict(svmfit.Unif, sample.test.Unif.svm)
+  
+  # Verification of SVM
+  pred.svm.Unif <- ifelse(pred.svm.Unif < 0, -1, 1)
+  table(pred.svm.Unif, sample.test.Unif.svm$channel.Unif)
+  
 
+  # Exp
+  # Set the label as "1" and "-1"
+  sample.train.Exp.svm <- sample.train.Exp
+  sample.train.Exp.svm$channel.Exp <- as.character(sample.train.Exp.svm$channel.Exp)
+  sample.train.Exp.svm$channel.Exp <- as.numeric(sample.train.Exp.svm$channel.Exp)
+  sample.train.Exp.svm[which(sample.train.Exp.svm$channel.Exp == 0),] <- transform(sample.train.Exp.svm[which(sample.train.Exp.svm$channel.Exp == 0),], channel.Exp = -1)
+  
+  sample.test.Exp.svm <- sample.test.Exp
+  sample.test.Exp.svm$channel.Exp <- as.character(sample.test.Exp.svm$channel.Exp)
+  sample.test.Exp.svm$channel.Exp <- as.numeric(sample.test.Exp.svm$channel.Exp)
+  sample.test.Exp.svm[which(sample.test.Exp.svm$channel.Exp == 0),] <- transform(sample.test.Exp.svm[which(sample.test.Exp.svm$channel.Exp == 0),], channel.Exp = -1)
+  svmfit.Exp <- svm(channel.Exp~., data = sample.train.Exp.svm)
+  pred.svm.Exp <- predict(svmfit.Exp, sample.test.Exp.svm)
+  
+  # Verification of SVM
+  pred.svm.Exp <- ifelse(pred.svm.Exp < 0, -1, 1)
+  table(pred.svm.Exp, sample.test.Exp.svm$channel.Exp)
+  
 
-
-labels <- distanceCompute(sample.test.Nor, 1)
-Label.Nor <- cbind(sample.test.Nor,labels)
-
-
-
-# K-NN
-library(class)
-set.seed(1)
-
-knn.pred.Nor = knn(sample.train.Nor, sample.test.Nor, sample.train.Nor$channel.Nor, k = 5)
-table(knn.pred.Nor, sample.test.Nor$channel.Nor)
-
-knn.pred.Unif = knn(sample.train.Unif, sample.test.Unif, sample.train.Unif$channel.Unif, k = 5)
-table(knn.pred.Unif, sample.test.Unif$channel.Unif)
-
-knn.pred.Exp = knn(sample.train.Exp, sample.test.Exp, sample.train.Exp$channel.Exp, k = 5)
-table(knn.pred.Exp, sample.test.Exp$channel.Exp)
-
-knn.pred.Poi = knn(sample.train.Poi, sample.test.Poi, sample.train.Poi$channel.Poi , k = 5)
-table(knn.pred.Poi, sample.test.Poi$channel.Poi)
-
-knn.pred.Ttest = knn(sample.train.Ttest, sample.test.Ttest, sample.train.Ttest$channel.Ttest , k = 5)
-table(knn.pred.Ttest , sample.test.Ttest$channel.Ttest)
-
-# SVM
-# Set the label as "1" and "-1"
-set.seed(1)
-library(e1071)
-sample.train.Exp.svm <- sample.train.Exp
-sample.train.Exp.svm[which(sample.train.Exp.svm$channel.Exp == "0",),] <- transform(sample.train.Exp.svm[which(sample.train.Exp.svm$channel.Exp == "0"),], channel.Exp = "-1")
-
-sample.test.Exp.svm <- transform(sample.test.Exp[which(sample.test.Exp$channel.Exp == "0"),], channel.Exp = "-1")
-svmfit.Exp = svm(sample.train.Exp.svm[1:8], sample.train.Exp.svm$channel.Exp)
-
-
-
-# Simulation with bootstrap
-boot.samples <- list()
-for(i in 1:length(mySample$stlm_ins_circle)){
-  b.samples.cases <- sample(length(mySample$Zd_time), length(mySample$Zd_time), replace = TRUE)
-  b.mydf <- mydf[b.samples.cases,]
-  boot.samples[[i]] <- b.mydf
-}
-str(boot.samples)
-boot.samples[1]
-
-# Parametric bootstrap
-
-library(glmnet)
-attach(mySample)
-glm.fit <- glm(stlm_ins_circle~Zd_time+Zmale+Zage+Ztotal_amt+Ztotal_cnt+ZifType0+ZifType1+ZifType2
-               +rnorm(nrow(mySample)), data = mySample, family = binomial)
-summary(glm.fit)
-
-nb = 5000
-bet = NULL
-n = nrow(mySample)
-for(i in 1:nb){
-  unifnum = sample(c(1:n),n, replace = T)
-  bet[i] = glm(stlm_ins_circle[unifnum,1]~Zd_time[unifnum,]+Zmale[unifnum,]
-               +Zage[unifnum,]+Ztotal_amt[unifnum,]+Ztotal_cnt[unifnum,]+ZifType0[unifnum,]+ZifType1[unifnum,]+ZifType2[unifnum,],
-               data = mySample, family = binomial)
-}
-
-detach(mySample)
+  # Poi
+  # Set the label as "1" and "-1"
+  sample.train.Poi.svm <- sample.train.Poi
+  sample.train.Poi.svm$channel.Poi <- as.character(sample.train.Poi.svm$channel.Poi)
+  sample.train.Poi.svm$channel.Poi <- as.numeric(sample.train.Poi.svm$channel.Poi)
+  sample.train.Poi.svm[which(sample.train.Poi.svm$channel.Poi == 0),] <- transform(sample.train.Poi.svm[which(sample.train.Poi.svm$channel.Poi == 0),], channel.Poi = -1)
+  
+  sample.test.Poi.svm <- sample.test.Poi
+  sample.test.Poi.svm$channel.Poi <- as.character(sample.test.Poi.svm$channel.Poi)
+  sample.test.Poi.svm$channel.Poi <- as.numeric(sample.test.Poi.svm$channel.Poi)
+  sample.test.Poi.svm[which(sample.test.Poi.svm$channel.Poi == 0),] <- transform(sample.test.Poi.svm[which(sample.test.Poi.svm$channel.Poi == 0),], channel.Poi = -1)
+  svmfit.Poi <- svm(channel.Poi~., data = sample.train.Poi.svm)
+  pred.svm.Poi <- predict(svmfit.Poi, sample.test.Poi.svm)
+  
+  # Verification of SVM
+  pred.svm.Poi <- ifelse(pred.svm.Poi < 0, -1, 1)
+  table(pred.svm.Poi, sample.test.Poi.svm$channel.Poi)
+  
+  
+  # Ttest
+  # Set the label as "1" and "-1"
+  sample.train.Ttest.svm <- sample.train.Ttest
+  sample.train.Ttest.svm$channel.Ttest <- as.character(sample.train.Ttest.svm$channel.Ttest)
+  sample.train.Ttest.svm$channel.Ttest <- as.numeric(sample.train.Ttest.svm$channel.Ttest)
+  sample.train.Ttest.svm[which(sample.train.Ttest.svm$channel.Ttest == 0),] <- transform(sample.train.Ttest.svm[which(sample.train.Ttest.svm$channel.Ttest == 0),], channel.Ttest = -1)
+  
+  sample.test.Ttest.svm <- sample.test.Ttest
+  sample.test.Ttest.svm$channel.Ttest <- as.character(sample.test.Ttest.svm$channel.Ttest)
+  sample.test.Ttest.svm$channel.Ttest <- as.numeric(sample.test.Ttest.svm$channel.Ttest)
+  sample.test.Ttest.svm[which(sample.test.Ttest.svm$channel.Ttest == 0),] <- transform(sample.test.Ttest.svm[which(sample.test.Ttest.svm$channel.Ttest == 0),], channel.Ttest = -1)
+  svmfit.Ttest <- svm(channel.Ttest~., data = sample.train.Ttest.svm)
+  pred.svm.Ttest <- predict(svmfit.Ttest, sample.test.Ttest.svm)
+  
+  # Verification of SVM
+  pred.svm.Ttest <- ifelse(pred.svm.Ttest < 0, -1, 1)
+  table(pred.svm.Ttest, sample.test.Ttest.svm$channel.Ttest)
+  
+  
