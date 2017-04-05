@@ -68,47 +68,9 @@ infovalue <- infovalue[-which(is.infinite(infovalue$iv)),]
 
 # PCA CLASSIFIED
 library(corrplot)
+library(data.tree)
 
-PCA <- function(x){
-  pr.out.class <- prcomp(x, scale = T)
-  cor.result <- cor(x,pr.out.class$x[,1:2])
-  # cor.sample <- cbind(x, pr.out.class$x[,1:2])
-  # cor.temp <- cor(cor.sample)
-  # cor.result <- cor.temp[-(nrow(cor.temp)-1):-nrow(cor.temp),(ncol(cor.temp)-1):ncol(cor.temp)]
-  # corrplot(cor.result, tl.cex = 0.5)
-  class.1 <- x[,which(cor.result[,1] >= cor.result[,2])]
-  class.2 <- x[,which(cor.result[,1] < cor.result[,2])]
-  return(list(class.1, class.2))
-}
-
-# end.split的输入为当前节点的两个父节点、自身节点及其他所有子节点
-end.split <- function(class.1, class.2, class.1.1, list){
-  end.split <- F
-  class.1.ratio <- rs.compute(class.1, class.2)
-  class.2.ratio <- rs.compute(class.2, class.1)
-  class.1.1.ratio  <- rs.compute(class.1.1, list)
-  class.1.1.merge <- merge(class.1.1.ratio, class.1.ratio, by = "names.x.", all.x = T)
-  decrease.number <- sum(class.1.1.merge$Ratio.x < class.1.1.merge$Ratio.y)
-  decrease.ratio <- decrease.number/ncol(class.1.1.ratio)
-  if(decrease.ratio >= 0.5 | ncol(class.1.1) == 1){
-    end.split <- T
-  } else{
-    end.split <- F
-    # keep PCA?
-  }
-}
-
-  class.1 <- data.frame(PCA(mysample[,-ncol(mysample)])[1])
-  class.2 <- data.frame(PCA(mysample[,-ncol(mysample)])[2])
-  class.1.1 <- data.frame(PCA(class.1)[1])
-  class.1.2 <- data.frame(PCA(class.1)[2])
-  class.2.1 <- data.frame(PCA(class.2)[1])
-  class.2.2 <- data.frame(PCA(class.2)[2])
-  
-  end.split(class.1, class.2, class.1.1, list(class.1.2, class.2.1, class.2.2))
-
-
-
+#compute ratio   (node,othernodes)
 rs.compute <- function(x,y){
   r.squared <- c()
   add.r.squared <- c()
@@ -127,6 +89,143 @@ rs.compute <- function(x,y){
   }
   return(data.frame(names(x),Ratio))
 }
+
+# return needsplit and ratio of currnode
+calNeedSplitAndRatio <- function(currnode, parentnode, list.otherleafs) {
+  need.split <- T
+  # class.1.ratio <- rs.compute(class.1, class.2)
+  # class.2.ratio <- rs.compute(class.2, class.1)
+  ratio  <- rs.compute(currnode$data, list.otherleafs)
+  
+  if( is.null(parentnode$ratio) ) {
+   return( list(TRUE, ratio) ) 
+  }else{
+    merge <- merge(ratio, parentnode$ratio, by = "names.x.", all.x = T)
+    print( names(merge) )
+    decrease.number <- sum(merge$Ratio.x < merge$Ratio.y)
+    decrease.ratio <- decrease.number/nrow(ratio)
+    print("decrease.number=")
+    print(decrease.number)
+    print("ncol(ratio)")
+    print(nrow(ratio))
+    if(decrease.ratio >= 0.5 | ncol(currnode$data) == 1){
+      need.split <- F
+    }
+    return( list( need.split, ratio ) )
+  }
+}
+
+
+#use PCA to split the tree node
+PCA <- function(x){
+  pr.out.class <- prcomp(x, scale = T)
+  cor.result <- cor(x,pr.out.class$x[,1:2])
+  class.1 <- x[,which(cor.result[,1] >= cor.result[,2])]
+  class.2 <- x[,which(cor.result[,1] < cor.result[,2])]
+  return(list(class.1, class.2))
+}
+
+
+
+#create tree test data
+data.root <- mysample[,-ncol(mysample)]
+# data.root <- mysample[,-(ncol(mysample)-2): -ncol(mysample)]
+t <- Node$new("t",ratio=NULL,needsplit=TRUE,data=data.root)  #root
+# t.1 <- t$AddChild("t.1",ratio=0.00,needsplit=TRUE,data=NA)
+# t.1.1 <- t.1$AddChild("t.1.1",ratio=0.00,needsplit=FALSE,data=NA)
+# t.1.2 <- t.1$AddChild("t.1.2",ratio=0.00,needsplit=FALSE,data=NA)
+# t.2 <- t$AddChild("t.2",ratio=0.00,needsplit=FALSE,data=NA)
+
+print( t$parent )
+print( t$parent$name )
+#you can print the node use : print(t,"ratio","needsplit") but don't add data attr the rstudio may crash
+#instead print the node data alone: print(t$data)
+print(t,"needsplit","ratio")
+
+#create tree
+createRESTree <- function(tree){
+  needsplits <- tree$Get('needsplit',filterFun = isLeaf)   #get leaf nodes split flag
+  names <- tree$Get('name',filterFun = isLeaf)             #get leaf nodes name
+  datas <- tree$Get('data',filterFun = isLeaf)             #get leaf nodes data
+  
+  node.index <- 1
+  for(nm in needsplits) {
+    if(nm == TRUE) {  # need to be splitted
+      left.node.name <- paste(names[node.index],".1", sep="")  # create the left child node name str
+      right.node.name <- paste(names[node.index],".2", sep="") # create the right child node name str
+      curr.node <- get(names[node.index])   #  node.index on curr node 
+      # others.node.names <- names[-node.index] # other leaf nodes name
+      # others.node <- mget(as.vector(others.node.names)) # other leaf nodes
+      #cal data
+      PCA.data <- PCA(curr.node$data)   # split node data use pca
+      left.data <- as.data.frame(PCA.data[1])
+      right.data <- as.data.frame(PCA.data[2])
+     
+      assign(left.node.name , curr.node$AddChild( left.node.name, ratio=0.00, needsplit=TRUE, data=left.data ), envir = .GlobalEnv )  #add left child node
+      assign(right.node.name , curr.node$AddChild( right.node.name, ratio=0.00, needsplit=TRUE, data=right.data ), envir = .GlobalEnv )  #add right child node
+    }
+    node.index <- node.index + 1
+  }
+  # add ratio and needsplit to leaf nodes
+  
+  needsplits <- tree$Get('needsplit',filterFun = isLeaf)   #get leaf nodes split flag
+  names <- tree$Get('name',filterFun = isLeaf)             #get leaf nodes name
+  datas <- tree$Get('data',filterFun = isLeaf)             #get leaf nodes data
+  
+  
+  nd.index <- 1
+  for(nd in names) {
+    cur.nd <- get(nd)
+    # other.node.names <- names[-node.index] # other leaf nodes name
+    # print(as.vector(other.node.names))
+    # other.nodes <- mget(as.vector(other.node.names)) # other leaf nodes
+    calres <- calNeedSplitAndRatio(cur.nd, cur.nd$parent, datas)
+    cur.nd$needsplit <- calres[1]
+    cur.nd$ratio <- calres[2]
+    nd.index <- nd.index + 1
+  }
+
+  print(all(needsplits==FALSE))   #all leaf nodes needsplits==FALSE  break out 
+  return("func done")
+}
+
+
+while(all(t$Get('needsplit',filterFun = isLeaf)==TRUE)){
+  createRESTree(t)
+}
+
+print(t,"ratio","needsplit")
+
+
+
+# end.split的输入为当前节点的两个父节点、自身节点及其他所有子节点
+# end.split <- function(class.1, class.1.1, list){
+#   end.split <- F
+#   class.1.ratio <- rs.compute(class.1, class.2)
+#   class.2.ratio <- rs.compute(class.2, class.1)
+#   class.1.1.ratio  <- rs.compute(class.1.1, list)
+#   class.1.1.merge <- merge(class.1.1.ratio, class.1.ratio, by = "names.x.", all.x = T)
+#   decrease.number <- sum(class.1.1.merge$Ratio.x < class.1.1.merge$Ratio.y)
+#   decrease.ratio <- decrease.number/ncol(class.1.1.ratio)
+#   if(decrease.ratio >= 0.5 | ncol(class.1.1) == 1){
+#     end.split <- T
+#   } else{
+#     end.split <- F
+#   }
+# }
+
+  class.1 <- data.frame(PCA(mysample[,-ncol(mysample)])[1])
+  class.2 <- data.frame(PCA(mysample[,-ncol(mysample)])[2])
+  class.1.1 <- data.frame(PCA(class.1)[1])
+  class.1.2 <- data.frame(PCA(class.1)[2])
+  class.2.1 <- data.frame(PCA(class.2)[1])
+  class.2.2 <- data.frame(PCA(class.2)[2])
+  
+  end.split(class.1, class.2, class.1.1, list(class.1.2, class.2.1, class.2.2))
+
+
+
+
 
 rsoutput <- rs.compute(class.1, class.2)
 
