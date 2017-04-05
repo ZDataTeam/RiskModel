@@ -6,12 +6,12 @@ options(scipen=3)
 
 # TO BE SOLVED!!! HANDLING IMBALANCE!!! RESULTS INDICATED DATA IMBALANCE COULD CAUSE PREDICTION RATE DECREASE
 
-  # random insert
-    # index <- sample(c(1:nrow(mysample)-1),length(mysample[which(mysample$OVERDUE != 0)]),replace = T)
-  # newSample <- rbind(mysample[index,],mysample[which(mysample$OVERDUE != 0),],mysample[index+1,])
+# random insert
+# index <- sample(c(1:nrow(mysample)-1),length(mysample[which(mysample$OVERDUE != 0)]),replace = T)
+# newSample <- rbind(mysample[index,],mysample[which(mysample$OVERDUE != 0),],mysample[index+1,])
 
-  # rbind directly
-  # mysample <-rbind(mysample, mysample[which(mysample$OVERDUE != 0),])
+# rbind directly
+# mysample <-rbind(mysample, mysample[which(mysample$OVERDUE != 0),])
 
 # TO BE SOLVED!!! WHETHER TERMINAL IN KEEPING CURRENT NODE OR BACK TO FATHER NODE!!!(VERIFY)
 
@@ -70,72 +70,7 @@ infovalue <- infovalue[-which(is.infinite(infovalue$iv)),]
 # When could be classified by value, done!
 # When can't, chosen minimum variable between PCA1 and PCA2 as one class ?????? any better??????
 # library(corrplot)
-PCA <- function(x){
-  pr.out.class <- prcomp(x, scale = T)
-  # cor.result <- cor(x, pr.out.class$x[,1:2])
-  cor.sample <- cbind(x, pr.out.class$x[,1:2])
-  cor.temp <- cor(cor.sample)
-  cor.result <- cor.temp[-(nrow(cor.temp)-1):-nrow(cor.temp),(ncol(cor.temp)-1):ncol(cor.temp)]
-  # corrplot(cor.result, tl.cex = 0.5)
-  if(!(all(cor.result[,1] <= cor.result[,2]) | all(cor.result[,1] >= cor.result[,2]))){
-    class.1 <- x[,which(cor.result[,1] >= cor.result[,2])]
-    class.2 <- x[,which(cor.result[,1] < cor.result[,2])]
-  }else{
-    class.1 <- x[,which.min(abs(cor.result[,1] - cor.result[,2]))]
-    class.2 <- x[,-which.min(abs(cor.result[,1] - cor.result[,2]))]
-  }
-  return(list(class.1, class.2))
-}
-
-# input of end.split formed by two fixed father nodes, current node itself, and all other leaves
-end.split <- function(class.1, class.2, class.1.1, list){
-  end.split <- F
-  class.1.ratio <- rs.compute(class.1, class.2)
-  class.2.ratio <- rs.compute(class.2, class.1)
-  
-  class.1.1.ratio  <- rs.compute(class.1.1, list)
-  class.1.1.merge <- merge(class.1.1.ratio, class.1.ratio, by = "names.x.", all.x = T)
-  decrease.number <- sum(class.1.1.merge$Ratio.x < class.1.1.merge$Ratio.y)
-  decrease.ratio <- decrease.number/ncol(class.1.1.ratio)
-  if(decrease.ratio >= 0.5 | ncol(class.1.1) == 1){
-    end.split <- T
-  } else{
-    end.split <- F
-    # keep PCA?
-  }
-}
-
-
-# When PCA finished, consider ceiling(max(1, IV(currentClass)/IV(allClass)*numbers of index in current class))
-# to determine the number left in each class
-index.left <- function(class.list){
-  reduction.sample <- c()
-  for(i in class.list){
-    class.sample <- merge(t(i), infovalue, by = row.names, all.x = T)
-    class.sample.IV <- sum(class.sample.IV[,ncol(class.sample.IV)])
-    all.class.IV <- sum(infovalue[,2])
-    number.left <- ceiling(max(1, class.sample.IV/all.class.IV*ncol(class.sample)))
-    class.reduction <- sort(i, decreasing = T)
-    reduction.sample <- append(reduction.sample, class.reduction)
-  }
-  return(reduction.sample)
-}
-
-
-  class.1 <- data.frame(PCA(mysample[,-ncol(mysample)])[1])
-  class.2 <- data.frame(PCA(mysample[,-ncol(mysample)])[2])
-  class.1.1 <- data.frame(PCA(class.1)[1])
-  class.1.2 <- data.frame(PCA(class.1)[2])
-  class.2.1 <- data.frame(PCA(class.2)[1])
-  class.2.2 <- data.frame(PCA(class.2)[2])
-  
-  end.split(class.1, class.2, class.1.1, list(class.1.2, class.2.1, class.2.2))
-
-  
-  first.reduction.sample <- index.left(PCARESULT)
-  
-
-
+library(data.tree)
 rs.compute <- function(x,y){
   r.squared <- c()
   add.r.squared <- c()
@@ -154,6 +89,139 @@ rs.compute <- function(x,y){
   }
   return(data.frame(names(x),Ratio))
 }
+
+# return needsplit and ratio of currnode
+calNeedSplitAndRatio <- function(currnode, parentnode, list.otherleafs) {
+  need.split <- T
+  # class.1.ratio <- rs.compute(class.1, class.2)
+  # class.2.ratio <- rs.compute(class.2, class.1)
+  ratio  <- rs.compute(currnode$data, list.otherleafs)
+  
+  if( is.null(parentnode$ratio) ) {
+    return( list(TRUE, ratio) ) 
+  }else{
+    merge <- merge(ratio, parentnode$ratio, by = "names.x.", all.x = T)
+    print( names(merge) )
+    decrease.number <- sum(merge$Ratio.x < merge$Ratio.y)
+    decrease.ratio <- decrease.number/nrow(ratio)
+    print("decrease.number=")
+    print(decrease.number)
+    print("ncol(ratio)")
+    print(nrow(ratio))
+    if(decrease.ratio >= 0.5 | ncol(currnode$data) == 1){
+      need.split <- F
+    }
+    return( list( need.split, ratio ) )
+  }
+}
+
+
+PCA <- function(x){
+  pr.out.class <- prcomp(x, scale = T)
+  cor.result <- cor(x, pr.out.class$x[,1:2])
+  # cor.sample <- cbind(x, pr.out.class$x[,1:2])
+  # cor.temp <- cor(cor.sample)
+  # cor.result <- cor.temp[-(nrow(cor.temp)-1):-nrow(cor.temp),(ncol(cor.temp)-1):ncol(cor.temp)]
+  # corrplot(cor.result, tl.cex = 0.5)
+  if(!(all(cor.result[,1] <= cor.result[,2]) | all(cor.result[,1] >= cor.result[,2]))){
+    class.1 <- x[,which(cor.result[,1] >= cor.result[,2])]
+    class.2 <- x[,which(cor.result[,1] < cor.result[,2])]
+  }else{
+    class.1 <- x[,which.min(abs(cor.result[,1] - cor.result[,2]))]
+    class.2 <- x[,-which.min(abs(cor.result[,1] - cor.result[,2]))]
+  }
+  return(list(class.1, class.2))
+}
+
+
+#create tree test data
+data.root <- mysample[,-ncol(mysample)]
+# data.root <- mysample[,-(ncol(mysample)-2): -ncol(mysample)]
+t <- Node$new("t",ratio=NULL,needsplit=TRUE,data=data.root)  #root
+#create tree
+createRESTree <- function(tree){
+  needsplits <- tree$Get('needsplit',filterFun = isLeaf)   #get leaf nodes split flag
+  names <- tree$Get('name',filterFun = isLeaf)             #get leaf nodes name
+  datas <- tree$Get('data',filterFun = isLeaf)             #get leaf nodes data
+  
+  node.index <- 1
+  for(nm in needsplits) {
+    if(nm == TRUE) {  # need to be splitted
+      left.node.name <- paste(names[node.index],".1", sep="")  # create the left child node name str
+      right.node.name <- paste(names[node.index],".2", sep="") # create the right child node name str
+      curr.node <- get(names[node.index])   #  node.index on curr node 
+      # others.node.names <- names[-node.index] # other leaf nodes name
+      # others.node <- mget(as.vector(others.node.names)) # other leaf nodes
+      #cal data
+      PCA.data <- PCA(curr.node$data)   # split node data use pca
+      left.data <- as.data.frame(PCA.data[1])
+      right.data <- as.data.frame(PCA.data[2])
+      
+      assign(left.node.name , curr.node$AddChild( left.node.name, ratio=0.00, needsplit=TRUE, data=left.data ), envir = .GlobalEnv )  #add left child node
+      assign(right.node.name , curr.node$AddChild( right.node.name, ratio=0.00, needsplit=TRUE, data=right.data ), envir = .GlobalEnv )  #add right child node
+    }
+    node.index <- node.index + 1
+  }
+  # add ratio and needsplit to leaf nodes
+  
+  needsplits <- tree$Get('needsplit',filterFun = isLeaf)   #get leaf nodes split flag
+  names <- tree$Get('name',filterFun = isLeaf)             #get leaf nodes name
+  datas <- tree$Get('data',filterFun = isLeaf)             #get leaf nodes data
+  
+  
+  nd.index <- 1
+  for(nd in names) {
+    cur.nd <- get(nd)
+    # other.node.names <- names[-node.index] # other leaf nodes name
+    # print(as.vector(other.node.names))
+    # other.nodes <- mget(as.vector(other.node.names)) # other leaf nodes
+    calres <- calNeedSplitAndRatio(cur.nd, cur.nd$parent, datas)
+    cur.nd$needsplit <- calres[1]
+    cur.nd$ratio <- calres[2]
+    nd.index <- nd.index + 1
+  }
+  
+  print(all(needsplits==FALSE))   #all leaf nodes needsplits==FALSE  break out 
+  return("func done")
+}
+
+
+while(all(t$Get('needsplit',filterFun = isLeaf)==TRUE)){
+  createRESTree(t)
+}
+
+
+
+# When PCA finished, consider ceiling(max(1, IV(currentClass)/IV(allClass)*numbers of index in current class))
+# to determine the number left in each class
+index.left <- function(class.list){
+  reduction.sample <- c()
+  for(i in class.list){
+    class.sample <- merge(t(i), infovalue, by = row.names, all.x = T)
+    class.sample.IV <- sum(class.sample.IV[,ncol(class.sample.IV)])
+    all.class.IV <- sum(infovalue[,2])
+    number.left <- ceiling(max(1, class.sample.IV/all.class.IV*ncol(class.sample)))
+    class.reduction <- sort(i, decreasing = T)
+    reduction.sample <- append(reduction.sample, class.reduction)
+  }
+  return(reduction.sample)
+}
+
+
+class.1 <- data.frame(PCA(mysample[,-ncol(mysample)])[1])
+class.2 <- data.frame(PCA(mysample[,-ncol(mysample)])[2])
+class.1.1 <- data.frame(PCA(class.1)[1])
+class.1.2 <- data.frame(PCA(class.1)[2])
+class.2.1 <- data.frame(PCA(class.2)[1])
+class.2.2 <- data.frame(PCA(class.2)[2])
+
+end.split(class.1, class.2, class.1.1, list(class.1.2, class.2.1, class.2.2))
+
+
+first.reduction.sample <- index.left(PCARESULT)
+
+
+
 
 
 rsoutput <- rsCompute(class.1, class.2)
@@ -200,7 +268,7 @@ glm.selection <- function(x){
   Plist <- c()
   index <- NULL  #added item
   index.list <- c()  #added list
-
+  
   for(i in 1:ncol(x)){
     assign(paste("glm.fit.", i, sep = ""),
            glm(OVERDUE ~ x[,i], data = x, family = binomial))
@@ -211,10 +279,10 @@ glm.selection <- function(x){
     index.list <- append(index.list, index)
     for(i in 1:ncol(x)){
       while(!(i %in% index.list)){
-      current.glm <- glm(OVERDUE ~ x[,index], data = x, family = binomial)
-      current.glm <- update(current.glm, ~.+x[,i])
-      Plist <- c()
-      Plist[i] <- summary(current.glm)$coefficients[,4]
+        current.glm <- glm(OVERDUE ~ x[,index], data = x, family = binomial)
+        current.glm <- update(current.glm, ~.+x[,i])
+        Plist <- c()
+        Plist[i] <- summary(current.glm)$coefficients[,4]
       }
     }
     Recursion(x, Plist, index.list, current.glm)
