@@ -1,24 +1,31 @@
 # TO DO!!!!
   
   # COMPARISON OF SYSTEM.TIME()
-  # AROUND (18+18):(36+36):(230+230) WITH K = 5 AND KERNEL AND GAMMA SET AS DEFAULT
+  # AROUND 40:80:300 WITH K = 5 AND KERNEL AND GAMMA SET AS DEFAULT
 
   # COMPARISON OF ACCURACY
-  # AROUND (80%:99%:87%) WITH WITH K = 5 AND KERNEL AND GAMMA SET AS DEFAULT
+  # AROUND (80%:99%:85%) WITH WITH K = 5 AND KERNEL AND GAMMA SET AS DEFAULT
   
   # TRY MULTI COMBINATION OF FUNCTION
 
 
 # DATA INPUT
 mySample <- read.csv("E:\\Allinpay\\Data\\STLM_INS_CIRCLE\\workingPaper\\data\\sample.csv",
-# mySample <- read.csv("/Users/mk/Documents/RiskModel/zsy_signal_pos/UpdateDataForClassification.csv",
                      header = TRUE,
                      stringsAsFactors = TRUE)
 options(scipen=3)
 rownames(mySample) <- mySample[,1]
 mySample <- mySample[,-1]
 mySample$stlm_ins_circle <- as.factor(mySample$stlm_ins_circle)
-mySample$SUM <- Reduce('+',mySample[,2:9])
+
+# linear combination with all weight set
+# mySample$SUM <- apply(mySample[,2:9], 1, sum)
+comb <- function(x){
+  weight <- c(5,5,10,20,20,1,1,1)
+  y <- sum(weight*x)
+  return(y)
+}
+mySample$SUM <- apply(mySample[,2:9], 1, comb)
 
 
 
@@ -120,20 +127,30 @@ sample.test.Ttest <- sample.test[,c(1:8,24)]
   }
 
   # Classification Result and verification 
-  test.class.Nor <- apply(sample.test.Nor[,1:8], 1, dist.compute, n = 1)
+  system.time(test.class.Nor <- apply(sample.test.Nor[,1:8], 1, dist.compute, n = 1))
   table(sample.test.Nor$channel.Nor, test.class.Nor)
+  accuracy <- table(sample.test.Nor$channel.Nor, test.class.Nor)
+  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
   
-  test.class.Unif <- apply(sample.test.Unif[,1:8], 1, dist.compute, n = 2)
+  system.time(test.class.Unif <- apply(sample.test.Unif[,1:8], 1, dist.compute, n = 2))
   table(sample.test.Unif$channel.Unif, test.class.Unif)
+  accuracy <- table(sample.test.Unif$channel.Unif, test.class.Unif)
+  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
   
-  test.class.Exp <- apply(sample.test.Exp[,1:8], 1, dist.compute, n = 3)
+  system.time(test.class.Exp <- apply(sample.test.Exp[,1:8], 1, dist.compute, n = 3))
   table(sample.test.Exp$channel.Exp, test.class.Exp)
+  accuracy <- table(sample.test.Exp$channel.Exp, test.class.Exp)
+  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
   
-  test.class.Poi <- apply(sample.test.Poi[,1:8], 1, dist.compute, n = 4)
+  system.time(test.class.Poi <- apply(sample.test.Poi[,1:8], 1, dist.compute, n = 4))
   table(sample.test.Poi$channel.Poi, test.class.Poi)
+  accuracy <- table(sample.test.Poi$channel.Poi, test.class.Poi)
+  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
   
-  test.class.Ttest <- apply(sample.test.Ttest[,1:8], 1, dist.compute, n = 5)
+  system.time(test.class.Ttest <- apply(sample.test.Ttest[,1:8], 1, dist.compute, n = 5))
   table(sample.test.Ttest$channel.Ttest, test.class.Ttest)
+  accuracy <- table(sample.test.Ttest$channel.Ttest, test.class.Ttest)
+  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
     
   # K-NN
   
@@ -141,21 +158,31 @@ sample.test.Ttest <- sample.test[,c(1:8,24)]
   set.seed(1)
   
   # K-NN MODEL
-  knn.pred.Nor <- knn(sample.train.Nor, sample.test.Nor, sample.train.Nor$channel.Nor, k = 5)
+  system.time(knn.pred.Nor <- knn(sample.train.Nor, sample.test.Nor, sample.train.Nor$channel.Nor, k = 5))
   # Verification of K-NN
   table(knn.pred.Nor, sample.test.Nor$channel.Nor)
+  accuracy <- table(knn.pred.Nor, sample.test.Nor$channel.Nor)
+  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
   
-  knn.pred.Unif <- knn(sample.train.Unif, sample.test.Unif, sample.train.Unif$channel.Unif, k = 5)
+  system.time(knn.pred.Unif <- knn(sample.train.Unif, sample.test.Unif, sample.train.Unif$channel.Unif, k = 5))
   table(knn.pred.Unif, sample.test.Unif$channel.Unif)
+  accuracy <- table(knn.pred.Unif, sample.test.Unif$channel.Unif)
+  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
 
-  knn.pred.Exp <- knn(sample.train.Exp, sample.test.Exp, sample.train.Exp$channel.Exp, k = 5)
+  system.time(knn.pred.Exp <- knn(sample.train.Exp, sample.test.Exp, sample.train.Exp$channel.Exp, k = 5))
   table(knn.pred.Exp, sample.test.Exp$channel.Exp)
+  accuracy <- table(knn.pred.Exp, sample.test.Exp$channel.Exp)
+  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
 
-  knn.pred.Poi <- knn(sample.train.Poi, sample.test.Poi, sample.train.Poi$channel.Poi , k = 5)
+  system.time(knn.pred.Poi <- knn(sample.train.Poi, sample.test.Poi, sample.train.Poi$channel.Poi , k = 5))
   table(knn.pred.Poi, sample.test.Poi$channel.Poi)
+  accuracy <- table(knn.pred.Poi, sample.test.Poi$channel.Poi)
+  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
 
-  knn.pred.Ttest <- knn(sample.train.Ttest, sample.test.Ttest, sample.train.Ttest$channel.Ttest , k = 5)
+  system.time(knn.pred.Ttest <- knn(sample.train.Ttest, sample.test.Ttest, sample.train.Ttest$channel.Ttest , k = 5))
   table(knn.pred.Ttest , sample.test.Ttest$channel.Ttest)
+  accuracy <- table(knn.pred.Ttest , sample.test.Ttest$channel.Ttest)
+  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
   
   # SVM
   
@@ -173,12 +200,14 @@ sample.test.Ttest <- sample.test[,c(1:8,24)]
   sample.test.Nor.svm$channel.Nor <- as.character(sample.test.Nor.svm$channel.Nor)
   sample.test.Nor.svm$channel.Nor <- as.numeric(sample.test.Nor.svm$channel.Nor)
   sample.test.Nor.svm[which(sample.test.Nor.svm$channel.Nor == 0),] <- transform(sample.test.Nor.svm[which(sample.test.Nor.svm$channel.Nor == 0),], channel.Nor = -1)
-  svmfit.Nor <- svm(channel.Nor~., data = sample.train.Nor.svm)
-  pred.svm.Nor <- predict(svmfit.Nor, sample.test.Nor.svm)
+  system.time(svmfit.Nor <- svm(channel.Nor~., data = sample.train.Nor.svm))
+  system.time(pred.svm.Nor <- predict(svmfit.Nor, sample.test.Nor.svm))
   
   # Verification of SVM
   pred.svm.Nor <- ifelse(pred.svm.Nor < 0, -1, 1)
   table(pred.svm.Nor, sample.test.Nor.svm$channel.Nor)
+  accuracy <- table(pred.svm.Nor, sample.test.Nor.svm$channel.Nor)
+  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
   
   # Unif
   # Set the label as "1" and "-1"
@@ -191,12 +220,14 @@ sample.test.Ttest <- sample.test[,c(1:8,24)]
   sample.test.Unif.svm$channel.Unif <- as.character(sample.test.Unif.svm$channel.Unif)
   sample.test.Unif.svm$channel.Unif <- as.numeric(sample.test.Unif.svm$channel.Unif)
   sample.test.Unif.svm[which(sample.test.Unif.svm$channel.Unif == 0),] <- transform(sample.test.Unif.svm[which(sample.test.Unif.svm$channel.Unif == 0),], channel.Unif = -1)
-  svmfit.Unif <- svm(channel.Unif~., data = sample.train.Unif.svm)
-  pred.svm.Unif <- predict(svmfit.Unif, sample.test.Unif.svm)
+  system.time(svmfit.Unif <- svm(channel.Unif~., data = sample.train.Unif.svm))
+  system.time(pred.svm.Unif <- predict(svmfit.Unif, sample.test.Unif.svm))
   
   # Verification of SVM
   pred.svm.Unif <- ifelse(pred.svm.Unif < 0, -1, 1)
   table(pred.svm.Unif, sample.test.Unif.svm$channel.Unif)
+  accuracy <- table(pred.svm.Unif, sample.test.Unif.svm$channel.Unif)
+  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
   
 
   # Exp
@@ -210,12 +241,14 @@ sample.test.Ttest <- sample.test[,c(1:8,24)]
   sample.test.Exp.svm$channel.Exp <- as.character(sample.test.Exp.svm$channel.Exp)
   sample.test.Exp.svm$channel.Exp <- as.numeric(sample.test.Exp.svm$channel.Exp)
   sample.test.Exp.svm[which(sample.test.Exp.svm$channel.Exp == 0),] <- transform(sample.test.Exp.svm[which(sample.test.Exp.svm$channel.Exp == 0),], channel.Exp = -1)
-  svmfit.Exp <- svm(channel.Exp~., data = sample.train.Exp.svm)
-  pred.svm.Exp <- predict(svmfit.Exp, sample.test.Exp.svm)
+  system.time(svmfit.Exp <- svm(channel.Exp~., data = sample.train.Exp.svm))
+  system.time(pred.svm.Exp <- predict(svmfit.Exp, sample.test.Exp.svm))
   
   # Verification of SVM
   pred.svm.Exp <- ifelse(pred.svm.Exp < 0, -1, 1)
   table(pred.svm.Exp, sample.test.Exp.svm$channel.Exp)
+  accuracy <- table(pred.svm.Exp, sample.test.Exp.svm$channel.Exp)
+  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
   
 
   # Poi
@@ -229,13 +262,14 @@ sample.test.Ttest <- sample.test[,c(1:8,24)]
   sample.test.Poi.svm$channel.Poi <- as.character(sample.test.Poi.svm$channel.Poi)
   sample.test.Poi.svm$channel.Poi <- as.numeric(sample.test.Poi.svm$channel.Poi)
   sample.test.Poi.svm[which(sample.test.Poi.svm$channel.Poi == 0),] <- transform(sample.test.Poi.svm[which(sample.test.Poi.svm$channel.Poi == 0),], channel.Poi = -1)
-  svmfit.Poi <- svm(channel.Poi~., data = sample.train.Poi.svm)
-  pred.svm.Poi <- predict(svmfit.Poi, sample.test.Poi.svm)
+  system.time(svmfit.Poi <- svm(channel.Poi~., data = sample.train.Poi.svm))
+  system.time(pred.svm.Poi <- predict(svmfit.Poi, sample.test.Poi.svm))
   
   # Verification of SVM
   pred.svm.Poi <- ifelse(pred.svm.Poi < 0, -1, 1)
   table(pred.svm.Poi, sample.test.Poi.svm$channel.Poi)
-  
+  accuracy <- table(pred.svm.Poi, sample.test.Poi.svm$channel.Poi)
+  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
   
   # Ttest
   # Set the label as "1" and "-1"
@@ -248,11 +282,13 @@ sample.test.Ttest <- sample.test[,c(1:8,24)]
   sample.test.Ttest.svm$channel.Ttest <- as.character(sample.test.Ttest.svm$channel.Ttest)
   sample.test.Ttest.svm$channel.Ttest <- as.numeric(sample.test.Ttest.svm$channel.Ttest)
   sample.test.Ttest.svm[which(sample.test.Ttest.svm$channel.Ttest == 0),] <- transform(sample.test.Ttest.svm[which(sample.test.Ttest.svm$channel.Ttest == 0),], channel.Ttest = -1)
-  svmfit.Ttest <- svm(channel.Ttest~., data = sample.train.Ttest.svm)
-  pred.svm.Ttest <- predict(svmfit.Ttest, sample.test.Ttest.svm)
+  system.time(svmfit.Ttest <- svm(channel.Ttest~., data = sample.train.Ttest.svm))
+  system.time(pred.svm.Ttest <- predict(svmfit.Ttest, sample.test.Ttest.svm))
   
   # Verification of SVM
   pred.svm.Ttest <- ifelse(pred.svm.Ttest < 0, -1, 1)
   table(pred.svm.Ttest, sample.test.Ttest.svm$channel.Ttest)
+  accuracy <- table(pred.svm.Ttest, sample.test.Ttest.svm$channel.Ttest)
+  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
   
   
