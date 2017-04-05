@@ -72,10 +72,10 @@ infovalue <- infovalue[-which(is.infinite(infovalue$iv)),]
 # library(corrplot)
 PCA <- function(x){
   pr.out.class <- prcomp(x, scale = T)
-  cor.result <- cor(x, pr.out.class$x[,1:2])
-  # cor.sample <- cbind(x, pr.out.class$x[,1:2])
-  # cor.temp <- cor(cor.sample)
-  # cor.result <- cor.temp[-(nrow(cor.temp)-1):-nrow(cor.temp),(ncol(cor.temp)-1):ncol(cor.temp)]
+  # cor.result <- cor(x, pr.out.class$x[,1:2])
+  cor.sample <- cbind(x, pr.out.class$x[,1:2])
+  cor.temp <- cor(cor.sample)
+  cor.result <- cor.temp[-(nrow(cor.temp)-1):-nrow(cor.temp),(ncol(cor.temp)-1):ncol(cor.temp)]
   # corrplot(cor.result, tl.cex = 0.5)
   if(!(all(cor.result[,1] <= cor.result[,2]) | all(cor.result[,1] >= cor.result[,2]))){
     class.1 <- x[,which(cor.result[,1] >= cor.result[,2])]
@@ -155,7 +155,8 @@ rs.compute <- function(x,y){
   return(data.frame(names(x),Ratio))
 }
 
-rsoutput <- rs.compute(class.1, class.2)
+
+rsoutput <- rsCompute(class.1, class.2)
 
 
 
