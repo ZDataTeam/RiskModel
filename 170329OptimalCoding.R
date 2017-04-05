@@ -73,17 +73,18 @@ infovalue <- infovalue[-which(is.infinite(infovalue$iv)),]
 library(data.tree)
 rs.compute <- function(x,y){
   r.squared <- c()
-  add.r.squared <- c()
   Ratio <- c()
   temp <- x
   for(i in 1:length(x)){
+    add.r.squared <- c()
     temp[, 1:i] <- x[, i:1]
     names(temp)[1] <- "Ddiff"
     r.squared[i] <-  summary(lm(Ddiff~.-Ddiff, data = temp))$r.squared
     for(j in y){
       dtAdd <- data.frame(temp[,1], j)
       names(dtAdd)[1] <- "Ddiff"
-      add.r.squared <- append(summary(lm(Ddiff~.-Ddiff, data = dtAdd))$r.squared, add.r.squared)
+      add.r.squared <- append(add.r.squared, summary(lm(Ddiff~.-Ddiff, data = dtAdd))$r.squared)
+      # print(add.r.squared)
     }
     Ratio[i] <- r.squared[i]/max(add.r.squared)
   }
@@ -95,6 +96,10 @@ calNeedSplitAndRatio <- function(currnode, parentnode, list.otherleafs) {
   need.split <- T
   # class.1.ratio <- rs.compute(class.1, class.2)
   # class.2.ratio <- rs.compute(class.2, class.1)
+  # list.oleafsdata <- list()
+  # for(leaf in list.otherleafs){
+  #   list.oleafsdata <- append(list.oleafsdata,leaf$data)
+  # }
   ratio  <- rs.compute(currnode$data, list.otherleafs)
   
   if( is.null(parentnode$ratio) ) {
@@ -106,7 +111,7 @@ calNeedSplitAndRatio <- function(currnode, parentnode, list.otherleafs) {
     decrease.ratio <- decrease.number/nrow(ratio)
     print("decrease.number=")
     print(decrease.number)
-    print("ncol(ratio)")
+    print("nrow(ratio)")
     print(nrow(ratio))
     if(decrease.ratio >= 0.5 | ncol(currnode$data) == 1){
       need.split <- F
@@ -133,16 +138,28 @@ PCA <- function(x){
   return(list(class.1, class.2))
 }
 
+# c.1 <- data.frame(PCA(data.root)[1])
+# c.2 <- data.frame(PCA(data.root)[2])
+# rs.compute(c.1, c.2)
+# rs.compute(c.2, c.1)
+# 
+# c.1.1 <- data.frame(PCA(c.1)[1])
+# c.1.2 <- data.frame(PCA(c.1)[2])
+# c.2.1 <- data.frame(PCA(c.2)[1])
+# c.2.2 <- data.frame(PCA(c.2)[2])
+# rs.compute(c.1.1, list(c.1.2,c.2.1,c.2.2))
+
 
 #create tree test data
 data.root <- mysample[,-ncol(mysample)]
 # data.root <- mysample[,-(ncol(mysample)-2): -ncol(mysample)]
 t <- Node$new("t",ratio=NULL,needsplit=TRUE,data=data.root)  #root
 #create tree
-createRESTree <- function(tree){
-  needsplits <- tree$Get('needsplit',filterFun = isLeaf)   #get leaf nodes split flag
-  names <- tree$Get('name',filterFun = isLeaf)             #get leaf nodes name
-  datas <- tree$Get('data',filterFun = isLeaf)             #get leaf nodes data
+createRESTree <- function(){
+  # print("89898989")
+  needsplits <- t$Get('needsplit',filterFun = isLeaf)   #get leaf nodes split flag
+  names <- t$Get('name',filterFun = isLeaf)             #get leaf nodes name
+  datas <- t$Get('data',filterFun = isLeaf)             #get leaf nodes data
   
   node.index <- 1
   for(nm in needsplits) {
@@ -164,10 +181,11 @@ createRESTree <- function(tree){
   }
   # add ratio and needsplit to leaf nodes
   
-  needsplits <- tree$Get('needsplit',filterFun = isLeaf)   #get leaf nodes split flag
-  names <- tree$Get('name',filterFun = isLeaf)             #get leaf nodes name
-  datas <- tree$Get('data',filterFun = isLeaf)             #get leaf nodes data
-  
+  needsplits <- t$Get('needsplit',filterFun = isLeaf)   #get leaf nodes split flag
+  names <- t$Get('name',filterFun = isLeaf)             #get leaf nodes name
+  datas <- t$Get('data',filterFun = isLeaf)             #get leaf nodes data
+  # print(names(datas))
+  # print("hello")
   
   nd.index <- 1
   for(nd in names) {
@@ -175,7 +193,9 @@ createRESTree <- function(tree){
     # other.node.names <- names[-node.index] # other leaf nodes name
     # print(as.vector(other.node.names))
     # other.nodes <- mget(as.vector(other.node.names)) # other leaf nodes
-    calres <- calNeedSplitAndRatio(cur.nd, cur.nd$parent, datas)
+    print("others")
+    print(names(datas[-nd.index]))
+    calres <- calNeedSplitAndRatio(cur.nd, cur.nd$parent, datas[-nd.index])
     cur.nd$needsplit <- calres[1]
     cur.nd$ratio <- calres[2]
     nd.index <- nd.index + 1
@@ -186,18 +206,24 @@ createRESTree <- function(tree){
 }
 
 
-while(all(t$Get('needsplit',filterFun = isLeaf)==TRUE)){
-  createRESTree(t)
+while(any(t$Get('needsplit',filterFun = isLeaf)==TRUE)){
+  createRESTree()
 }
 
 
 
 # When PCA finished, consider ceiling(max(1, IV(currentClass)/IV(allClass)*numbers of index in current class))
 # to determine the number left in each class
-index.left <- function(class.list){
+
+names <- t$Get('name',filterFun = isLeaf)             #get leaf nodes name
+datas <- t$Get('data',filterFun = isLeaf)             #get leaf nodes data
+
+
+index.left <- function(x){
   reduction.sample <- c()
-  for(i in class.list){
-    class.sample <- merge(t(i), infovalue, by = row.names, all.x = T)
+  for(i in x){
+    class.sample <- merge(t(data.frame(i)), infovalue, by.x = row.names, 
+                          by.y = row.names, all.x = T)
     class.sample.IV <- sum(class.sample.IV[,ncol(class.sample.IV)])
     all.class.IV <- sum(infovalue[,2])
     number.left <- ceiling(max(1, class.sample.IV/all.class.IV*ncol(class.sample)))
@@ -206,7 +232,7 @@ index.left <- function(class.list){
   }
   return(reduction.sample)
 }
-
+index.left(datas)
 
 class.1 <- data.frame(PCA(mysample[,-ncol(mysample)])[1])
 class.2 <- data.frame(PCA(mysample[,-ncol(mysample)])[2])
