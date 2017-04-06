@@ -239,6 +239,7 @@ final.sample <- final.sample[-(nrow(final.sample)-1):-nrow(final.sample),]
 final.sample <- data.frame(final.sample)
 final.sample$OVERDUE <- mysample$OVERDUE
 
+write.csv(final.sample, file = "E:\\Allinpay\\Data\\LOAN\\sqlExport\\finalSample.csv", row.names = F)
 
     # print(dim(reduction.sample))
     # print((reduction.sample[,1]))
@@ -276,13 +277,19 @@ final.sample$OVERDUE <- mysample$OVERDUE
 
 
 # Stepwise with Logistics
-library(glmnet)
-attach(final.sample)
+# library(glmnet)
+# attach(final.sample)
+# library(speedglm)
+
+final.sample <- read.csv("E:\\Allinpay\\Data\\LOAN\\sqlExport\\finalSample.csv",
+                         header = T,
+                         stringsAsFactors = T)
+final.sample$OVERDUE <- as.factor(final.sample$OVERDUE)
 
 fullmod <- glm(OVERDUE ~., data = final.sample, family = binomial)
 coefficients.fullmod <- summary(fullmod)$coefficients[,4]
 which(coefficients.fullmod < 0.05)
-final.fullmod <- glm(OVERDUE ~ APP_OPEN_RD30+APP_OPEN_RD7+CT0+QUALITY1+ORATE+ORI_CHNL1,
+final.fullmod <- glm(OVERDUE ~ APP_OPEN_RD30+APP_OPEN_RD7, # +CT0+QUALITY1+ORATE+ORI_CHNL1,
                      data = final.sample, family = binomial)
 
 
@@ -356,7 +363,7 @@ glm.selection(final.sample)
 
 
 # Model for verify
-stepwiseGlm <- glm(OVERDUE ~ CT0+TXNAMT1011+APP_OPEN_RD30+QUALITY1+ORI_CHNL1+ORATE+APP_OPEN_RD7,
+stepwiseGlm <- glm(OVERDUE ~ CT0+TXNAMT1011+APP_OPEN_RD30,# +QUALITY1+ORI_CHNL1+ORATE+APP_OPEN_RD7,
                    data = final.sample, family = binomial)
 summary(stepwiseGlm)
 
