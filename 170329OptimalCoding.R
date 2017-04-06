@@ -106,13 +106,13 @@ calNeedSplitAndRatio <- function(currnode, parentnode, list.otherleafs) {
     return( list(TRUE, ratio) ) 
   }else{
     merge <- merge(ratio, parentnode$ratio, by = "names.x.", all.x = T)
-    print( names(merge) )
+    # print( names(merge) )
     decrease.number <- sum(merge$Ratio.x < merge$Ratio.y)
     decrease.ratio <- decrease.number/nrow(ratio)
-    print("decrease.number=")
-    print(decrease.number)
-    print("nrow(ratio)")
-    print(nrow(ratio))
+    # print("decrease.number=")
+    # print(decrease.number)
+    # print("nrow(ratio)")
+    # print(nrow(ratio))
     if(decrease.ratio >= 0.5 | ncol(currnode$data) == 1){
       need.split <- F
     }
@@ -133,6 +133,10 @@ PCA <- function(x){
     class.2 <- x[,which(cor.result[,1] < cor.result[,2])]
   }else{
     class.1 <- x[,which.min(abs(cor.result[,1] - cor.result[,2]))]
+# TO DO!!!!!!!!!!!!!!!!
+    colnames(class.1) <- names(x[,which.min(abs(cor.result[,1] - cor.result[,2]))])
+    print(names(x)[which.min(abs(cor.result[,1] - cor.result[,2]))])
+    print(colnames(class.1))
     class.2 <- x[,-which.min(abs(cor.result[,1] - cor.result[,2]))]
   }
   return(list(class.1, class.2))
@@ -193,15 +197,15 @@ createRESTree <- function(){
     # other.node.names <- names[-node.index] # other leaf nodes name
     # print(as.vector(other.node.names))
     # other.nodes <- mget(as.vector(other.node.names)) # other leaf nodes
-    print("others")
-    print(names(datas[-nd.index]))
+    # print("others")
+    # print(names(datas[-nd.index]))
     calres <- calNeedSplitAndRatio(cur.nd, cur.nd$parent, datas[-nd.index])
     cur.nd$needsplit <- calres[1]
     cur.nd$ratio <- calres[2]
     nd.index <- nd.index + 1
   }
   
-  print(all(needsplits==FALSE))   #all leaf nodes needsplits==FALSE  break out 
+  # print(all(needsplits==FALSE))   #all leaf nodes needsplits==FALSE  break out 
   return("func done")
 }
 
@@ -218,12 +222,10 @@ while(any(t$Get('needsplit',filterFun = isLeaf)==TRUE)){
 names <- t$Get('name',filterFun = isLeaf)             #get leaf nodes name
 datas <- t$Get('data',filterFun = isLeaf)             #get leaf nodes data
 
-
 index.left <- function(x){
   reduction.sample <- c()
-  for(i in x){
-    class.sample <- merge(t(data.frame(i)), infovalue, by.x = row.names, 
-                          by.y = row.names, all.x = T)
+  for(i in 1:length(datas[])){
+    class.sample <- merge(t(datas[[i]]), infovalue, by = row.names,all.x = T)
     class.sample.IV <- sum(class.sample.IV[,ncol(class.sample.IV)])
     all.class.IV <- sum(infovalue[,2])
     number.left <- ceiling(max(1, class.sample.IV/all.class.IV*ncol(class.sample)))
