@@ -217,8 +217,10 @@ datas <- t$Get('data',filterFun = isLeaf)             #get leaf nodes data
 # index.left <- function(x){
   for(i in 1:length(datas[])){
     new.sample <- t(datas[[i]])
+    # print(str(new.sample))
+    
     class.sample <- merge(new.sample, infovalue, by = "row.names")
-    # print(dim(class.sample))
+    # print(str(class.sample))
     class.sample.IV <- sum(class.sample[,ncol(class.sample)])
     all.class.IV <- sum(infovalue[,2])
     number.left <- ceiling(max(1, class.sample.IV/all.class.IV*nrow(class.sample)))
@@ -226,6 +228,7 @@ datas <- t$Get('data',filterFun = isLeaf)             #get leaf nodes data
     #first number.left rows order by IV
     
     reduction.sample <- t(class.sample[order(class.sample[,ncol(class.sample)], decreasing = T)[1:number.left],])
+    # print(str(reduction.sample))
     if(i == 1){
       final.sample <- reduction.sample
     }else {
@@ -234,12 +237,16 @@ datas <- t$Get('data',filterFun = isLeaf)             #get leaf nodes data
   }
 
 colnames(final.sample) <- final.sample[1,]
-final.sample <- final.sample[-1,]
-final.sample <- final.sample[-(nrow(final.sample)-1):-nrow(final.sample),]
-final.sample <- data.frame(final.sample)
+final.sample <- final.sample[-1,] #5773
+final.sample <- final.sample[-(nrow(final.sample)-1):-nrow(final.sample),]   #5771
+# options(stringsAsFactors = FALSE)
+final.sample <- data.frame(final.sample,stringsAsFactors = FALSE)
+# final.sample <- transform(final.sample, class=as.numeric(as.character(final.sample)))
+indx <- sapply(final.sample, is.character)
+final.sample[indx] <- lapply(final.sample[indx], function(x) as.numeric(as.character(x)))
 final.sample$OVERDUE <- mysample$OVERDUE
 
-write.csv(final.sample, file = "E:\\Allinpay\\Data\\LOAN\\sqlExport\\finalSample.csv", row.names = F)
+# write.csv(final.sample, file = "E:\\Allinpay\\Data\\LOAN\\sqlExport\\finalSample.csv", row.names = F)
 
     # print(dim(reduction.sample))
     # print((reduction.sample[,1]))
@@ -281,15 +288,16 @@ write.csv(final.sample, file = "E:\\Allinpay\\Data\\LOAN\\sqlExport\\finalSample
 # attach(final.sample)
 # library(speedglm)
 
-final.sample <- read.csv("E:\\Allinpay\\Data\\LOAN\\sqlExport\\finalSample.csv",
-                         header = T,
-                         stringsAsFactors = T)
-final.sample$OVERDUE <- as.factor(final.sample$OVERDUE)
+# final.sample <- read.csv("E:\\Allinpay\\Data\\LOAN\\sqlExport\\finalSample.csv",
+#                          header = T,
+#                          stringsAsFactors = T)
+# final.sample$OVERDUE <- as.factor(final.sample$OVERDUE)
 
 fullmod <- glm(OVERDUE ~., data = final.sample, family = binomial)
 coefficients.fullmod <- summary(fullmod)$coefficients[,4]
 which(coefficients.fullmod < 0.05)
-final.fullmod <- glm(OVERDUE ~ APP_OPEN_RD30+APP_OPEN_RD7, # +CT0+QUALITY1+ORATE+ORI_CHNL1,
+final.fullmod <- glm(OVERDUE ~ APP_OPEN_RD30+STATUS0+CT0+CT2+CT1+NORMALTERM_COUNT
+                     +NOPASS+PASSNOSIGN+SIGN+UPDATE,
                      data = final.sample, family = binomial)
 
 
@@ -299,20 +307,23 @@ summary(nothing)
 backwards <- step(fullmod)
 coefficients.backwards <- summary(backwards)$coefficients[,4]
 which(coefficients.backwards < 0.05)
-final.backwards <- glm(OVERDUE ~ APP_OPEN_RD30+APP_OPEN_RD7+TXNAMT1011+CT0+QUALITY1+ORATE+ORI_CHNL1,
+final.backwards <- glm(OVERDUE ~ APP_OPEN_RD30+STATUS0+CTAMT0+CT0+CT2+CT1+NORMALTERM_COUNT
+                       +NOPASS+PASSNOSIGN+SIGN+UPDATE,
                        data = final.sample, family = binomial)
 
 forwards <- step(nothing, scope = list(lower = formula(nothing), upper = formula(fullmod)), direction = "forward")
 coefficients.forwards <- summary(forwards)$coefficients[,4]
 which(coefficients.forwards < 0.05)
-final.forwards <- glm(OVERDUE ~ TXNAMT1011+APP_OPEN_RD30+CT0+QUALITY1+ORI_CHNL1+APP_OPEN_RD7+ORATE,
+final.forwards <- glm(OVERDUE ~ APP_OPEN_RD30+CT0+SIGN+CT1+UPDATE+STATUS0+CT2+NOPASS+CTAMT0
+                      +PASSNOSIGN+NORMALTERM_COUNT,
                       data = final.sample, family = binomial)
 
 
 bothways <- step(nothing, list(lower = formula(nothing), upper = formula(fullmod)), direction = "both", trace = 0)
 coefficients.bothways <- summary(bothways)$coefficients[,4]
 which(coefficients.bothways < 0.05)
-final.bothways <- glm(OVERDUE ~ TXNAMT1011+APP_OPEN_RD30+CT0+QUALITY1+ORI_CHNL1+APP_OPEN_RD7+ORATE,
+final.bothways <- glm(OVERDUE ~ APP_OPEN_RD30+CT0+SIGN+CT1+UPDATE+STATUS0+CT2
+                      +NOPASS+CTAMT0+PASSNOSIGN+NORMALTERM_COUNT,
                       data = final.sample, family = binomial)
 
 
@@ -352,7 +363,7 @@ glm.selection <- function(x){
             Plist[i] <- summary(current.glm)$coefficients[,4]
           }
         }
-        print(current.glm)
+        print(formula(current.glm))
       }
       return(Recursion(x, Plist, index.list, current.glm))
     }
@@ -363,28 +374,26 @@ glm.selection(final.sample)
 
 
 # Model for verify
-stepwiseGlm <- glm(OVERDUE ~ CT0+TXNAMT1011+APP_OPEN_RD30,# +QUALITY1+ORI_CHNL1+ORATE+APP_OPEN_RD7,
+stepwiseGlm <- glm(OVERDUE ~ CT0+CT1+APP_OPEN_RD30+TXNAMT1011+UPDATE+STATUS0+SIGN+CT2+NORMALTERM_COUNT,
                    data = final.sample, family = binomial)
 summary(stepwiseGlm)
 
 
-
-# for(i in 1:length(final.sample)){
-#   if(!(i %in% c("7","5","1","16","18","3","17","2","10"))){
-#     assign(paste("glm.fit", i, sep = ""),
-#            glm(OVERDUE ~ final.sample[,i]+CT0+TXNAMT1011+APP_OPEN_RD30+QUALITY1+ORI_CHNL1+
-#                  APP_OPEN_RD7+ORATE+CUSTOMER_TYPE+NOPASS,
-#                data = final.sample, family = binomial))
-#     Plist1[i] <- summary(get(paste("glm.fit", i, sep = "")))$coefficients[2,4]
-#   }
-# }
-# which.min(Plist1)
-# names(final.sample)[which.min(Plist1)]
-
-# stepwiseGlm <- glm(OVERDUE ~ CT0+TXNAMT1011+APP_OPEN_RD30+QUALITY1+ORI_CHNL1+APP_OPEN_RD7
-#                    +ORATE+CUSTOMER_TYPE+NOPASS,
-#                    data = final.sample, family = binomial)
-# summary(stepwiseGlm)
+# Plist1 <- c()
+#  for(i in 1:length(final.sample)){
+#    if(!(i %in% c("7","11","1","5","24","3","23","9","12"))){
+#      assign(paste("glm.fit", i, sep = ""),
+#             glm(OVERDUE ~ final.sample[,i] +CT0+CT1+APP_OPEN_RD30+TXNAMT1011+UPDATE+STATUS0+CT2+NORMALTERM_COUNT,
+#                 data = final.sample, family = binomial))
+#      Plist1[i] <- summary(get(paste("glm.fit", i, sep = "")))$coefficients[2,4]
+#    }
+#  }
+#  which.min(Plist1)
+#  names(final.sample)[which.min(Plist1)]
+# 
+#  stepwiseGlm <- glm(OVERDUE ~ CT0+CT1+APP_OPEN_RD30+TXNAMT1011+UPDATE+STATUS0+SIGN+CT2+NORMALTERM_COUNT,
+#                     data = final.sample, family = binomial)
+#  summary(stepwiseGlm)
 
 
 
