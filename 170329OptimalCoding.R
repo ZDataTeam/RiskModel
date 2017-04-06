@@ -225,7 +225,7 @@ datas <- t$Get('data',filterFun = isLeaf)             #get leaf nodes data
    
     #first number.left rows order by IV
     
-    reduction.sample <- t(class.sample[order(class.sample[,ncol(class.sample)])[1:number.left],])
+    reduction.sample <- t(class.sample[order(class.sample[,ncol(class.sample)], decreasing = T)[1:number.left],])
     if(i == 1){
       final.sample <- reduction.sample
     }else {
@@ -236,6 +236,8 @@ datas <- t$Get('data',filterFun = isLeaf)             #get leaf nodes data
 colnames(final.sample) <- final.sample[1,]
 final.sample <- final.sample[-1,]
 final.sample <- final.sample[-(nrow(final.sample)-1):-nrow(final.sample),]
+final.sample <- data.frame(final.sample)
+final.sample$OVERDUE <- mysample$OVERDUE
 
 
     # print(dim(reduction.sample))
@@ -275,36 +277,36 @@ final.sample <- final.sample[-(nrow(final.sample)-1):-nrow(final.sample),]
 
 # Stepwise with Logistics
 library(glmnet)
-attach(reductionSample)
+attach(final.sample)
 
-fullmod <- glm(OVERDUE ~., data = reductionSample, family = binomial)
+fullmod <- glm(OVERDUE ~., data = final.sample, family = binomial)
 coefficients.fullmod <- summary(fullmod)$coefficients[,4]
 which(coefficients.fullmod < 0.05)
 final.fullmod <- glm(OVERDUE ~ APP_OPEN_RD30+APP_OPEN_RD7+CT0+QUALITY1+ORATE+ORI_CHNL1,
-                     data = reductionSample, family = binomial)
+                     data = final.sample, family = binomial)
 
 
-nothing <- glm(OVERDUE ~ 1, data = reductionSample, family = binomial)
+nothing <- glm(OVERDUE ~ 1, data = final.sample, family = binomial)
 summary(nothing)
 
 backwards <- step(fullmod)
 coefficients.backwards <- summary(backwards)$coefficients[,4]
 which(coefficients.backwards < 0.05)
 final.backwards <- glm(OVERDUE ~ APP_OPEN_RD30+APP_OPEN_RD7+TXNAMT1011+CT0+QUALITY1+ORATE+ORI_CHNL1,
-                       data = reductionSample, family = binomial)
+                       data = final.sample, family = binomial)
 
 forwards <- step(nothing, scope = list(lower = formula(nothing), upper = formula(fullmod)), direction = "forward")
 coefficients.forwards <- summary(forwards)$coefficients[,4]
 which(coefficients.forwards < 0.05)
 final.forwards <- glm(OVERDUE ~ TXNAMT1011+APP_OPEN_RD30+CT0+QUALITY1+ORI_CHNL1+APP_OPEN_RD7+ORATE,
-                      data = reductionSample, family = binomial)
+                      data = final.sample, family = binomial)
 
 
 bothways <- step(nothing, list(lower = formula(nothing), upper = formula(fullmod)), direction = "both", trace = 0)
 coefficients.bothways <- summary(bothways)$coefficients[,4]
 which(coefficients.bothways < 0.05)
 final.bothways <- glm(OVERDUE ~ TXNAMT1011+APP_OPEN_RD30+CT0+QUALITY1+ORI_CHNL1+APP_OPEN_RD7+ORATE,
-                      data = reductionSample, family = binomial)
+                      data = final.sample, family = binomial)
 
 
 # Boundary: one star
@@ -350,31 +352,31 @@ glm.selection <- function(x){
   }
 }
 
-glm.selection(reductionSample)
+glm.selection(final.sample)
 
 
 # Model for verify
 stepwiseGlm <- glm(OVERDUE ~ CT0+TXNAMT1011+APP_OPEN_RD30+QUALITY1+ORI_CHNL1+ORATE+APP_OPEN_RD7,
-                   data = reductionSample, family = binomial)
+                   data = final.sample, family = binomial)
 summary(stepwiseGlm)
 
 
 
-# for(i in 1:length(reductionSample)){
+# for(i in 1:length(final.sample)){
 #   if(!(i %in% c("7","5","1","16","18","3","17","2","10"))){
 #     assign(paste("glm.fit", i, sep = ""),
-#            glm(OVERDUE ~ reductionSample[,i]+CT0+TXNAMT1011+APP_OPEN_RD30+QUALITY1+ORI_CHNL1+
+#            glm(OVERDUE ~ final.sample[,i]+CT0+TXNAMT1011+APP_OPEN_RD30+QUALITY1+ORI_CHNL1+
 #                  APP_OPEN_RD7+ORATE+CUSTOMER_TYPE+NOPASS,
-#                data = reductionSample, family = binomial))
+#                data = final.sample, family = binomial))
 #     Plist1[i] <- summary(get(paste("glm.fit", i, sep = "")))$coefficients[2,4]
 #   }
 # }
 # which.min(Plist1)
-# names(reductionSample)[which.min(Plist1)]
+# names(final.sample)[which.min(Plist1)]
 
 # stepwiseGlm <- glm(OVERDUE ~ CT0+TXNAMT1011+APP_OPEN_RD30+QUALITY1+ORI_CHNL1+APP_OPEN_RD7
 #                    +ORATE+CUSTOMER_TYPE+NOPASS,
-#                    data = reductionSample, family = binomial)
+#                    data = final.sample, family = binomial)
 # summary(stepwiseGlm)
 
 
@@ -382,10 +384,10 @@ summary(stepwiseGlm)
 library(ggplot2)
 compare.table <- function(x){
   glm.probs <- predict(x, type = "response")
-  contrasts(factor(reductionSample$OVERDUE))
-  glm.pred <- rep("0", nrow(reductionSample))
+  contrasts(factor(final.sample$OVERDUE))
+  glm.pred <- rep("0", nrow(final.sample))
   glm.pred[glm.probs > 0.5] = "1"
-  table.rate <- table(glm.pred, factor(reductionSample$OVERDUE))
+  table.rate <- table(glm.pred, factor(final.sample$OVERDUE))
   print(qplot(seq(-200,200, length = 5771), sort(glm.probs), col = "response"))
   print(table.rate)
   total.correct.rate <- (table.rate[1,1]+table.rate[2,2])/(sum(table.rate))
