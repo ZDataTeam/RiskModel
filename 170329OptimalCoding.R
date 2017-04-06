@@ -132,25 +132,17 @@ PCA <- function(x){
     class.1 <- x[,which(cor.result[,1] >= cor.result[,2])]
     class.2 <- x[,which(cor.result[,1] < cor.result[,2])]
   }else{
-    class.1 <- x[,which.min(abs(cor.result[,1] - cor.result[,2]))]
+    class.1 <- x[,which.min(abs(cor.result[,1] - cor.result[,2])), drop = F]
 # TO DO!!!!!!!!!!!!!!!!
-    colnames(class.1) <- names(x[,which.min(abs(cor.result[,1] - cor.result[,2]))])
-    print(names(x)[which.min(abs(cor.result[,1] - cor.result[,2]))])
-    print(colnames(class.1))
+    # colnames(class.1) <- names(x[,which.min(abs(cor.result[,1] - cor.result[,2]))])
+    # print(names(class.1))
+    # View(class.1)
+    # print(names(x)[which.min(abs(cor.result[,1] - cor.result[,2]))])
     class.2 <- x[,-which.min(abs(cor.result[,1] - cor.result[,2]))]
   }
   return(list(class.1, class.2))
 }
 
-# c.1 <- data.frame(PCA(data.root)[1])
-# c.2 <- data.frame(PCA(data.root)[2])
-# rs.compute(c.1, c.2)
-# rs.compute(c.2, c.1)
-# 
-# c.1.1 <- data.frame(PCA(c.1)[1])
-# c.1.2 <- data.frame(PCA(c.1)[2])
-# c.2.1 <- data.frame(PCA(c.2)[1])
-# c.2.2 <- data.frame(PCA(c.2)[2])
 # rs.compute(c.1.1, list(c.1.2,c.2.1,c.2.2))
 
 
@@ -219,40 +211,64 @@ while(any(t$Get('needsplit',filterFun = isLeaf)==TRUE)){
 # When PCA finished, consider ceiling(max(1, IV(currentClass)/IV(allClass)*numbers of index in current class))
 # to determine the number left in each class
 
-names <- t$Get('name',filterFun = isLeaf)             #get leaf nodes name
+# names <- t$Get('name',filterFun = isLeaf)             #get leaf nodes name
 datas <- t$Get('data',filterFun = isLeaf)             #get leaf nodes data
 
-index.left <- function(x){
-  reduction.sample <- c()
+# index.left <- function(x){
   for(i in 1:length(datas[])){
-    class.sample <- merge(t(datas[[i]]), infovalue, by = row.names,all.x = T)
-    class.sample.IV <- sum(class.sample.IV[,ncol(class.sample.IV)])
+    new.sample <- t(datas[[i]])
+    class.sample <- merge(new.sample, infovalue, by = "row.names")
+    # print(dim(class.sample))
+    class.sample.IV <- sum(class.sample[,ncol(class.sample)])
     all.class.IV <- sum(infovalue[,2])
-    number.left <- ceiling(max(1, class.sample.IV/all.class.IV*ncol(class.sample)))
-    class.reduction <- sort(i, decreasing = T)
-    reduction.sample <- append(reduction.sample, class.reduction)
+    number.left <- ceiling(max(1, class.sample.IV/all.class.IV*nrow(class.sample)))
+   
+    #first number.left rows order by IV
+    
+    reduction.sample <- t(class.sample[order(class.sample[,ncol(class.sample)])[1:number.left],])
+    if(i == 1){
+      final.sample <- reduction.sample
+    }else {
+      final.sample <- cbind(final.sample, reduction.sample)
+    }
   }
-  return(reduction.sample)
-}
-index.left(datas)
 
-class.1 <- data.frame(PCA(mysample[,-ncol(mysample)])[1])
-class.2 <- data.frame(PCA(mysample[,-ncol(mysample)])[2])
-class.1.1 <- data.frame(PCA(class.1)[1])
-class.1.2 <- data.frame(PCA(class.1)[2])
-class.2.1 <- data.frame(PCA(class.2)[1])
-class.2.2 <- data.frame(PCA(class.2)[2])
-
-end.split(class.1, class.2, class.1.1, list(class.1.2, class.2.1, class.2.2))
+colnames(final.sample) <- final.sample[1,]
+final.sample <- final.sample[-1,]
+final.sample <- final.sample[-(nrow(final.sample)-1):-nrow(final.sample),]
 
 
-first.reduction.sample <- index.left(PCARESULT)
+    # print(dim(reduction.sample))
+    # print((reduction.sample[,1]))
+    # v.rows <- order(class.sample[,-ncol(class.sample)])[1:number.left]
+    # class.reduction <- class.sample[ v.rows, ]
+    # 
+    # 
+    # reduction.sample <- append(reduction.sample, class.reduction)
+
+  
+  
+#   return(reduction.sample)
+# }
+# index.left(datas)
+
+# class.1 <- data.frame(PCA(mysample[,-ncol(mysample)])[1])
+# class.2 <- data.frame(PCA(mysample[,-ncol(mysample)])[2])
+# class.1.1 <- data.frame(PCA(class.1)[1])
+# class.1.2 <- data.frame(PCA(class.1)[2])
+# class.2.1 <- data.frame(PCA(class.2)[1])
+# class.2.2 <- data.frame(PCA(class.2)[2])
+
+# end.split(class.1, class.2, class.1.1, list(class.1.2, class.2.1, class.2.2))
+
+
+# first.reduction.sample <- index.left(PCARESULT)
 
 
 
 
 
-rsoutput <- rsCompute(class.1, class.2)
+# rsoutput <- rsCompute(class.1, class.2)
 
 
 
