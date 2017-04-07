@@ -334,11 +334,14 @@ glm.selection <- function(x){
     while(all(Plist) < 0.05){
       # print(all(Plist))
       index <- which.min(Plist)
+      print(index)
       index.list <- append(index.list, index)
+      print(index.list)
+      current.glm <- update(current.glm, ~.+x[,index])
       for(i in 1:ncol(x)){
         while(!(i %in% index.list)){
-          current.glm <- glm(OVERDUE ~ x[,index], data = x, family = binomial)
-          current.glm <- update(current.glm, ~.+x[,i])
+          assign(paste("glm.fit.",i, sep = ""),
+                 update(current.glm, ~.+x[,i]))
           Plist <- c()
           Plist[i] <- summary(current.glm)$coefficients[,4]
         }
@@ -351,7 +354,7 @@ glm.selection <- function(x){
   Plist <- c()
   index <- NULL  #added item
   index.list <- c()  #added list
-  
+
   for(i in 1:ncol(x)){
     assign(paste("glm.fit.", i, sep = ""),
            glm(OVERDUE ~ x[,i], data = x, family = binomial))
@@ -362,11 +365,13 @@ glm.selection <- function(x){
     # print(index)
     index.list <- append(index.list, index)
     # print(index.list)
+    current.glm <- glm(OVERDUE ~ x[,index], data = x, family = binomial)
+    print(current.glm)
     for(i in 1:ncol(x)){
       while(!(i %in% index.list)){
-        current.glm <- glm(OVERDUE ~ x[,index], data = x, family = binomial)
         assign(paste("glm.fit.",i, sep = ""),
               update(current.glm, ~.+x[,i]))
+        print(get(paste("glm.fit.", i, sep = "")))
         Plist <- c()
         Plist[i] <- summary(get(paste("glm.fit.", i, sep = "")))$coefficients[,4]
       }
