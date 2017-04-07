@@ -329,6 +329,25 @@ final.bothways <- glm(OVERDUE ~ APP_OPEN_RD30+CT0+SIGN+CT1+UPDATE+STATUS0+CT2
 
 # Boundary: one star
 glm.selection <- function(x){
+  
+  Recursion <- function(x,Plist,index.list,current.glm){
+    while(all(Plist) < 0.05){
+      # print(all(Plist))
+      index <- which.min(Plist)
+      index.list <- append(index.list, index)
+      for(i in 1:ncol(x)){
+        while(!(i %in% index.list)){
+          current.glm <- glm(OVERDUE ~ x[,index], data = x, family = binomial)
+          current.glm <- update(current.glm, ~.+x[,i])
+          Plist <- c()
+          Plist[i] <- summary(current.glm)$coefficients[,4]
+        }
+      }
+      print(formula(current.glm))
+    }
+    return(Recursion(x, Plist, index.list, current.glm))
+  }
+  
   Plist <- c()
   index <- NULL  #added item
   index.list <- c()  #added list
@@ -340,33 +359,20 @@ glm.selection <- function(x){
   }
   while(any(Plist < 0.05)){
     index <- which.min(Plist)
+    # print(index)
     index.list <- append(index.list, index)
+    # print(index.list)
     for(i in 1:ncol(x)){
       while(!(i %in% index.list)){
         current.glm <- glm(OVERDUE ~ x[,index], data = x, family = binomial)
-        current.glm <- update(current.glm, ~.+x[,i])
+        assign(paste("glm.fit.",i, sep = ""),
+              update(current.glm, ~.+x[,i]))
         Plist <- c()
-        Plist[i] <- summary(current.glm)$coefficients[,4]
+        Plist[i] <- summary(get(paste("glm.fit.", i, sep = "")))$coefficients[,4]
       }
+      # print(Plist)
     }
     Recursion(x, Plist, index.list, current.glm)
-    Recursion <- function(x,Plist,index.list,current.glm){
-      while(all(Plist) < 0.05){
-        # print(all(Plist))
-        index <- which.min(Plist)
-        index.list <- append(index.list, index)
-        for(i in 1:ncol(x)){
-          while(!(i %in% index.list)){
-            current.glm <- glm(OVERDUE ~ x[,index], data = x, family = binomial)
-            current.glm <- update(current.glm, ~.+x[,i])
-            Plist <- c()
-            Plist[i] <- summary(current.glm)$coefficients[,4]
-          }
-        }
-        print(formula(current.glm))
-      }
-      return(Recursion(x, Plist, index.list, current.glm))
-    }
   }
 }
 
