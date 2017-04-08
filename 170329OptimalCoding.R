@@ -246,53 +246,9 @@ indx <- sapply(final.sample, is.character)
 final.sample[indx] <- lapply(final.sample[indx], function(x) as.numeric(as.character(x)))
 final.sample$OVERDUE <- mysample$OVERDUE
 
-# write.csv(final.sample, file = "E:\\Allinpay\\Data\\LOAN\\sqlExport\\finalSample.csv", row.names = F)
-
-    # print(dim(reduction.sample))
-    # print((reduction.sample[,1]))
-    # v.rows <- order(class.sample[,-ncol(class.sample)])[1:number.left]
-    # class.reduction <- class.sample[ v.rows, ]
-    # 
-    # 
-    # reduction.sample <- append(reduction.sample, class.reduction)
-
-  
-  
-#   return(reduction.sample)
-# }
-# index.left(datas)
-
-# class.1 <- data.frame(PCA(mysample[,-ncol(mysample)])[1])
-# class.2 <- data.frame(PCA(mysample[,-ncol(mysample)])[2])
-# class.1.1 <- data.frame(PCA(class.1)[1])
-# class.1.2 <- data.frame(PCA(class.1)[2])
-# class.2.1 <- data.frame(PCA(class.2)[1])
-# class.2.2 <- data.frame(PCA(class.2)[2])
-
-# end.split(class.1, class.2, class.1.1, list(class.1.2, class.2.1, class.2.2))
 
 
-# first.reduction.sample <- index.left(PCARESULT)
-
-
-
-
-
-# rsoutput <- rsCompute(class.1, class.2)
-
-
-
-
-# Stepwise with Logistics
-# library(glmnet)
-# attach(final.sample)
-# library(speedglm)
-
-# final.sample <- read.csv("E:\\Allinpay\\Data\\LOAN\\sqlExport\\finalSample.csv",
-#                          header = T,
-#                          stringsAsFactors = T)
-# final.sample$OVERDUE <- as.factor(final.sample$OVERDUE)
-
+# Stepwise
 fullmod <- glm(OVERDUE ~., data = final.sample, family = binomial)
 coefficients.fullmod <- summary(fullmod)$coefficients[,4]
 which(coefficients.fullmod < 0.05)
@@ -327,86 +283,73 @@ final.bothways <- glm(OVERDUE ~ APP_OPEN_RD30+CT0+SIGN+CT1+UPDATE+STATUS0+CT2
                       data = final.sample, family = binomial)
 
 
-# Boundary: one star
-glm.selection <- function(x){
-  
-  Recursion <- function(x,Plist,index.list,current.glm){
-    while(all(Plist) < 0.05){
-      # print(all(Plist))
-      index <- which.min(Plist)
-      print(index)
-      index.list <- append(index.list, index)
-      print(index.list)
-      current.glm <- update(current.glm, ~.+x[,index])
-      for(i in 1:ncol(x)){
-        while(!(i %in% index.list)){
-          assign(paste("glm.fit.",i, sep = ""),
-                 update(current.glm, ~.+x[,i]))
-          Plist <- c()
-          Plist[i] <- summary(current.glm)$coefficients[,4]
-        }
-      }
-      print(formula(current.glm))
-    }
-    return(Recursion(x, Plist, index.list, current.glm))
-  }
-  
-  Plist <- c()
-  index <- NULL  #added item
-  index.list <- c()  #added list
 
-  for(i in 1:ncol(x)){
-    assign(paste("glm.fit.", i, sep = ""),
-           glm(OVERDUE ~ x[,i], data = x, family = binomial))
-    Plist[i] <- summary(get(paste("glm.fit.", i, sep = "")))$coefficients[2,4]
-  }
-  while(any(Plist < 0.05)){
-    index <- which.min(Plist)
-    # print(index)
-    index.list <- append(index.list, index)
-    # print(index.list)
-    current.glm <- glm(OVERDUE ~ x[,index], data = x, family = binomial)
-    print(current.glm)
-    for(i in 1:ncol(x)){
-      while(!(i %in% index.list)){
-        assign(paste("glm.fit.",i, sep = ""),
-              update(current.glm, ~.+x[,i]))
-        print(get(paste("glm.fit.", i, sep = "")))
-        Plist <- c()
-        Plist[i] <- summary(get(paste("glm.fit.", i, sep = "")))$coefficients[,4]
+newGLMSelect <- function(p.data) {
+  namelist <- colnames(final.sample)
+  n <- ncol(p.data)-1
+  i.currLayer <- 1         #layer index
+  list.formula <- list()   
+  c.p <- c(0.00001)        # should have a initvalue  for any(na.omit(c.p) in while condition
+  c.minpindex <- c() #max layer -1
+  c.index <- 1:(ncol(p.data)-1) #1:25
+  # whilecondition<-NULL
+  # if(i.currLayer==1){whilecondition <- any(na.omit(c.p) < 0.05)
+  # }else{
+  #   whilecondition <- all(na.omit(c.p) < 0.05)
+  #   print("**********")
+  #   print(all(na.omit(c.p) < 0.05))
+  # }
+  # if(i.currLayer==1){TRUE}else{(max(na.omit(c.p)) < 0.05)}
+  # if(i.currLayer==1){TRUE}else{all(summary(list.formula[[length(c.minpindex)]])$coefficients[-1,4] >0.05)} # except intercept
+  # &  if(i.currLayer==1){TRUE}else{all(summary(list.formula[[c.minpindex[length(c.minpindex)]])$coefficients[-1,4] >0.05)} 
+  while(any(na.omit(c.p)<0.05) & (if(i.currLayer==1){TRUE}else{all(summary(list.formula[[c.minpindex[length(c.minpindex)]]])$coefficients[-1,4] < 0.05)})){
+    # print("all p")
+    # if(i.currLayer!=1){
+    #   print(summary(list.formula[[c.minpindex[length(c.minpindex)]]])$coefficients[-1,4])
+    #   if(i.currLayer==1){TRUE}else{all(summary(list.formula[[c.minpindex[length(c.minpindex)]]])$coefficients[-1,4] < 0.05)}
+    # }
+    # print(any(na.omit(c.p)<0.05))
+    # print( paste0("-----------c.p----",i.currLayer ) )
+    # print(c.p)
+    # print( paste0("-----------c.minpindex----",i.currLayer ) )
+    # print(c.minpindex)
+    # print( paste0("-----------formula----",i.currLayer ) )
+    # print(namelist[append(c.minpindex,1)])
+    for( i in c.index){ #if(!is.null(c.minpindex)){c.index[-c.minpindex]}else{c.index[]}
+      if(i %in% c.minpindex){
+        c.p[i] <- NA
+      }else{
+        if(!is.null(c.minpindex)){
+          xnam <- paste("", namelist[append(i,c.minpindex)], sep="")
+          # print(paste("OVERDUE ~ ", paste(xnam, collapse= "+")))
+          (fmla <- as.formula(paste("OVERDUE ~ ", paste(xnam, collapse= "+"))))
+          list.formula[[i]] <- glm(fmla, data = p.data, family = binomial) # put formula into list.formula # overwrite formula into list.formula
+        }else{
+          # print(namelist[i])
+          list.formula[[i]] <- glm(OVERDUE ~ get(namelist[i]), data = p.data, family = binomial) # put formula into list.formula # overwrite formula into list.formula
+        }
+        c.p[i] <- summary(list.formula[[i]])$coefficients[2,4] # put p into list.p
+        # print(c.p[i])
       }
-      # print(Plist)
     }
-    Recursion(x, Plist, index.list, current.glm)
+    c.minpindex <- append(c.minpindex,which.min(c.p))
+    i.currLayer <- i.currLayer + 1
+  }
+  if(i.currLayer==1){
+    return("Model failed")
+  } else{
+    fmla <- as.formula(paste("OVERDUE ~ ", paste(namelist[c.minpindex[-length(c.minpindex)]], collapse = "+")))
+    return(glm(fmla, data = p.data, family = binomial))
+    # return(c.minpindex[-1])
   }
 }
-
-glm.selection(final.sample)
+stepwiseGlm <- newGLMSelect(final.sample)
 
 
 # Model for verify
-stepwiseGlm <- glm(OVERDUE ~ CT0+CT1+APP_OPEN_RD30+TXNAMT1011+UPDATE+STATUS0+SIGN+CT2+NORMALTERM_COUNT,
-                   data = final.sample, family = binomial)
-summary(stepwiseGlm)
-
-
-# Plist1 <- c()
-#  for(i in 1:length(final.sample)){
-#    if(!(i %in% c("7","11","1","5","24","3","23","9","12"))){
-#      assign(paste("glm.fit", i, sep = ""),
-#             glm(OVERDUE ~ final.sample[,i] +CT0+CT1+APP_OPEN_RD30+TXNAMT1011+UPDATE+STATUS0+CT2+NORMALTERM_COUNT,
-#                 data = final.sample, family = binomial))
-#      Plist1[i] <- summary(get(paste("glm.fit", i, sep = "")))$coefficients[2,4]
-#    }
-#  }
-#  which.min(Plist1)
-#  names(final.sample)[which.min(Plist1)]
-# 
-#  stepwiseGlm <- glm(OVERDUE ~ CT0+CT1+APP_OPEN_RD30+TXNAMT1011+UPDATE+STATUS0+SIGN+CT2+NORMALTERM_COUNT,
-#                     data = final.sample, family = binomial)
-#  summary(stepwiseGlm)
-
-
+# stepwiseGlm <- glm(OVERDUE ~ CT0+CT1+APP_OPEN_RD30+TXNAMT1011+UPDATE+STATUS0+SIGN+CT2+NORMALTERM_COUNT+CTAMT2+NOPASS,
+#                    data = final.sample, family = binomial)
+# summary(stepwiseGlm)
 
 library(ggplot2)
 compare.table <- function(x){
