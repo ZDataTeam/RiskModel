@@ -7,15 +7,15 @@ options(scipen=3)
 # TO BE SOLVED!!! HANDLING IMBALANCE!!! RESULTS INDICATED DATA IMBALANCE COULD CAUSE PREDICTION RATE DECREASE
 
 # random insert
-# index <- sample(c(1:nrow(mysample)-1),length(mysample[which(mysample$OVERDUE != 0)]),replace = T)
-# newSample <- rbind(mysample[index,],mysample[which(mysample$OVERDUE != 0),],mysample[index+1,])
+# index <- sample(c(1:nrow(mysample)-1),length(mysample[which(mysample$OVERDUE != 0),]),replace = T)
+# mysample <- rbind(mysample[index,],mysample[which(mysample$OVERDUE != 0),],mysample[index+1,])
 
 # rbind directly
 # mysample <-rbind(mysample, mysample[which(mysample$OVERDUE != 0),])
 
 # TO BE SOLVED!!! WHETHER TERMINAL IN KEEPING CURRENT NODE OR BACK TO FATHER NODE!!!(VERIFY)
 
-mysample$OVERDUE <- as.factor(mysample$OVERDUE)
+# mysample$OVERDUE <- as.factor(mysample$OVERDUE)
 
 # Pos related variable combined
 # mysample <- mysample[,-27:-74]
@@ -250,36 +250,28 @@ final.sample$OVERDUE <- mysample$OVERDUE
 
 # Stepwise
 fullmod <- glm(OVERDUE ~., data = final.sample, family = binomial)
-coefficients.fullmod <- summary(fullmod)$coefficients[,4]
-which(coefficients.fullmod < 0.05)
-final.fullmod <- glm(OVERDUE ~ APP_OPEN_RD30+STATUS0+CT0+CT2+CT1+NORMALTERM_COUNT
-                     +NOPASS+PASSNOSIGN+SIGN+UPDATE,
-                     data = final.sample, family = binomial)
+coefficients.fullmod <- summary(fullmod)$coefficients[-1,4]
+final.fullmod <- glm(as.formula(paste("OVERDUE~", paste(names(which(coefficients.fullmod < 0.05)), collapse = "+"))),
+                 data = final.sample, family = binomial)
 
 
 nothing <- glm(OVERDUE ~ 1, data = final.sample, family = binomial)
-summary(nothing)
+
 
 backwards <- step(fullmod)
-coefficients.backwards <- summary(backwards)$coefficients[,4]
-which(coefficients.backwards < 0.05)
-final.backwards <- glm(OVERDUE ~ APP_OPEN_RD30+STATUS0+CTAMT0+CT0+CT2+CT1+NORMALTERM_COUNT
-                       +NOPASS+PASSNOSIGN+SIGN+UPDATE,
+coefficients.backwards <- summary(backwards)$coefficients[-1,4]
+final.backwards <- glm(as.formula(paste("OVERDUE~", paste(names(which(coefficients.backwards < 0.05)),collapse = "+"))),
                        data = final.sample, family = binomial)
 
 forwards <- step(nothing, scope = list(lower = formula(nothing), upper = formula(fullmod)), direction = "forward")
-coefficients.forwards <- summary(forwards)$coefficients[,4]
-which(coefficients.forwards < 0.05)
-final.forwards <- glm(OVERDUE ~ APP_OPEN_RD30+CT0+SIGN+CT1+UPDATE+STATUS0+CT2+NOPASS+CTAMT0
-                      +PASSNOSIGN+NORMALTERM_COUNT,
+(coefficients.forwards <- summary(forwards)$coefficients[-1,4])
+final.forwards <- glm(as.formula(paste("OVERDUE~", paste(names(which(coefficients.forwards < 0.05)), collapse = "+"))),
                       data = final.sample, family = binomial)
 
 
 bothways <- step(nothing, list(lower = formula(nothing), upper = formula(fullmod)), direction = "both", trace = 0)
-coefficients.bothways <- summary(bothways)$coefficients[,4]
-which(coefficients.bothways < 0.05)
-final.bothways <- glm(OVERDUE ~ APP_OPEN_RD30+CT0+SIGN+CT1+UPDATE+STATUS0+CT2
-                      +NOPASS+CTAMT0+PASSNOSIGN+NORMALTERM_COUNT,
+coefficients.bothways <- summary(bothways)$coefficients[-1,4]
+final.bothways <- glm(as.formula(paste("OVERDUE~", paste(names(which(coefficients.bothways < 0.05)), collapse = "+"))),
                       data = final.sample, family = binomial)
 
 
@@ -292,29 +284,7 @@ newGLMSelect <- function(p.data) {
   c.p <- c(0.00001)        # should have a initvalue  for any(na.omit(c.p) in while condition
   c.minpindex <- c() #max layer -1
   c.index <- 1:(ncol(p.data)-1) #1:25
-  # whilecondition<-NULL
-  # if(i.currLayer==1){whilecondition <- any(na.omit(c.p) < 0.05)
-  # }else{
-  #   whilecondition <- all(na.omit(c.p) < 0.05)
-  #   print("**********")
-  #   print(all(na.omit(c.p) < 0.05))
-  # }
-  # if(i.currLayer==1){TRUE}else{(max(na.omit(c.p)) < 0.05)}
-  # if(i.currLayer==1){TRUE}else{all(summary(list.formula[[length(c.minpindex)]])$coefficients[-1,4] >0.05)} # except intercept
-  # &  if(i.currLayer==1){TRUE}else{all(summary(list.formula[[c.minpindex[length(c.minpindex)]])$coefficients[-1,4] >0.05)} 
   while(any(na.omit(c.p)<0.05) & (if(i.currLayer==1){TRUE}else{all(summary(list.formula[[c.minpindex[length(c.minpindex)]]])$coefficients[-1,4] < 0.05)})){
-    # print("all p")
-    # if(i.currLayer!=1){
-    #   print(summary(list.formula[[c.minpindex[length(c.minpindex)]]])$coefficients[-1,4])
-    #   if(i.currLayer==1){TRUE}else{all(summary(list.formula[[c.minpindex[length(c.minpindex)]]])$coefficients[-1,4] < 0.05)}
-    # }
-    # print(any(na.omit(c.p)<0.05))
-    # print( paste0("-----------c.p----",i.currLayer ) )
-    # print(c.p)
-    # print( paste0("-----------c.minpindex----",i.currLayer ) )
-    # print(c.minpindex)
-    # print( paste0("-----------formula----",i.currLayer ) )
-    # print(namelist[append(c.minpindex,1)])
     for( i in c.index){ #if(!is.null(c.minpindex)){c.index[-c.minpindex]}else{c.index[]}
       if(i %in% c.minpindex){
         c.p[i] <- NA
