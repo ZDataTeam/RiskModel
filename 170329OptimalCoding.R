@@ -335,7 +335,10 @@ compare.table <- function(x){
   return(c(total.correct.rate, overdue.correct.rate))
 }
 
-compare.table(stepwiseGlm)
+if(!is.character((stepwiseGlm))){
+  compare.table(stepwiseGlm)
+}
+
 compare.table(final.fullmod)
 compare.table(final.backwards)
 compare.table(final.forwards)
