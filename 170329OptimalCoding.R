@@ -20,11 +20,71 @@ options(scipen=3)
 # Pos related variable combined
 # mysample <- mysample[,-27:-74]
 
+# ADDING POS QUALITY CONTROL INDEX
+mcht_cd <- read.csv("E:\\Allinpay\\Data\\LOAN\\sqlExport\\POSQC\\zsy_signal_pos\\MerchantID.csv",
+                    header = T,
+                    stringsAsFactors = T)
+mcht_cd <- mcht_cd[,1, drop = F]
+mysample <- cbind(mcht_cd, mysample)
+
+
+pos.qc <- dir("E:\\Allinpay\\Data\\LOAN\\sqlExport\\POSQC\\zsy_signal_pos\\output", pattern = "csv$")
+
+pos.qc.path <- paste("E:\\Allinpay\\Data\\LOAN\\sqlExport\\POSQC\\zsy_signal_pos\\output", pos.qc, sep = "\\")
+
+
+pos.qc.data <- lapply(pos.qc.path, function(x) read.csv(x, header = T, stringsAsFactors = F))
+
+for(i in 1:length(pos.qc)){
+  assign(substr(pos.qc[i],1,nchar(pos.qc[i])-4), pos.qc.data[[i]])
+}
+
+# PART 1: WITH QUALITY CONTROL INDEX OF GROUP DESIGN
+
+# pos.qc.group <- list(g.1.res, g.2.res, g.3.res, g.4.res, g.5.res, g.6.res, g.7.res, g.8.res, g.23.res)
+# 
+# pos.qc.merge.group <- Reduce(function(x,y) merge(x,y,by = "X"), pos.qc.group)
+# names(pos.qc.merge.group) <- c("MCHT_CD","g.1.res", "g.2.res", "g.3.res", "g.4.res", "g.5.res", "g.6.res", "g.7.res", "g.8.res", "g.23.res")
+# 
+# pos.qc.merge.group[,-1] <- apply(pos.qc.merge.group[,-1], c(1,2), function(x) ifelse(x == TRUE, 1, 0))
+# 
+# mysample <- merge(pos.qc.merge.group, mysample, by = "MCHT_CD", all.y = T)
+# mysample <- mysample[,-1]
+
+# RESULTS WITH ONLY GROUP ((0.93, 0.55), (0.93, 0.48), (0.93, 0.55), (0.93, 0.55), (0.93, 0.55))
+# RESULTS WITH GROUP AND TOTAL ((0.93, 0.53), (0.92, 0.46), (0.93, 0.53), (0.93, 0.53), (0.93, 0.53))
+
+# PART 2: WITH QUALITY CONTROL INDEX OF SINGLE DESIGN(g.single.11 deleted for all value standed TRUE) 
+# g.23.res ADDED OR NOT, SEEMS NOT MUCH DIFFERENCE
+
+# pos.qc.single <- list(g.single.1, g.single.2, g.single.3, g.single.4, g.single.5, g.single.6, g.single.7, g.single.8, g.single.9, g.single.10,
+#                            g.single.12, g.single.13, g.single.14, g.single.15, g.single.16, g.single.17, g.single.18, g.single.19, g.single.20,
+#                            g.single.21, g.single.22, g.single.23)
+# pos.qc.merge.single <- Reduce(function(x,y) merge(x,y, by = "X"),pos.qc.single)
+# names(pos.qc.merge.single) <- c("MCHT_CD","g.single.1", "g.single.2", "g.single.3", "g.single.4", "g.single.5", "g.single.6", "g.single.7", "g.single.8", "g.single.9", "g.single.10",
+#                                "g.single.12", "g.single.13", "g.single.14", "g.single.15", "g.single.16", "g.single.17", "g.single.18", "g.single.19", "g.single.20",
+#                                "g.single.21", "g.single.22", "g.single.23")
+# pos.qc.merge.single[,-1] <- apply(pos.qc.merge.single[,-1], c(1,2), function(x) ifelse(x == TRUE, 1, 0))
+# mysample <- merge(pos.qc.merge.single, mysample, by = "MCHT_CD", all.y = T)
+# mysample <- mysample[,-1]
+
+# RESULTS WITH ONLY SINGLE ((0.93, 0.53), (0.92, 0.42), (0.93, 0.51), (0.93, 0.52), (0.93, 0.52))
+# RESULTS WITH SINGLE AND TOTAL ((0.92, 0.48), (0.92, 0.43), (0.92, 0.48), (0.92,0.49), (0.92, 0.49))
+
+# PART 3: WITH QUALITY CONTROL INDEX OF ONLY g.23.res
+
+# names(g.23.res) <- c("MCHT_CD", "g.23.res")
+# g.23.res$g.23.res <- ifelse(g.23.res$g.23.res == TRUE, 1, 0)
+# mysample <- merge(g.23.res, mysample, by = "MCHT_CD", all.y = T)
+# mysample <- mysample[,-1]
+
+# RESULTS ((0.92, 0.46), (0.92, 0.45), (0.92, 0.47), (0.93, 0.48), (0.93, 0.48))
 
 # IV COMPUTE
 library(woe)
 va <- c()
 iv <- c()
+
 for(i in 1:length(mysample)){
   if(is.numeric(mysample[,i])){
     va[i] <- paste(names(mysample)[i],
@@ -124,21 +184,13 @@ calNeedSplitAndRatio <- function(currnode, parentnode, list.otherleafs) {
 PCA <- function(x){
   pr.out.class <- prcomp(x, scale = T)
   cor.result <- cor(x, pr.out.class$x[,1:2])
-  # cor.sample <- cbind(x, pr.out.class$x[,1:2])
-  # cor.temp <- cor(cor.sample)
-  # cor.result <- cor.temp[-(nrow(cor.temp)-1):-nrow(cor.temp),(ncol(cor.temp)-1):ncol(cor.temp)]
   # corrplot(cor.result, tl.cex = 0.5)
   if(!(all(cor.result[,1] <= cor.result[,2]) | all(cor.result[,1] >= cor.result[,2]))){
-    class.1 <- x[,which(cor.result[,1] >= cor.result[,2])]
-    class.2 <- x[,which(cor.result[,1] < cor.result[,2])]
+    class.1 <- x[,which(cor.result[,1] >= cor.result[,2]), drop = F]
+    class.2 <- x[,which(cor.result[,1] < cor.result[,2]), drop = F]
   }else{
     class.1 <- x[,which.min(abs(cor.result[,1] - cor.result[,2])), drop = F]
-# TO DO!!!!!!!!!!!!!!!!
-    # colnames(class.1) <- names(x[,which.min(abs(cor.result[,1] - cor.result[,2]))])
-    # print(names(class.1))
-    # View(class.1)
-    # print(names(x)[which.min(abs(cor.result[,1] - cor.result[,2]))])
-    class.2 <- x[,-which.min(abs(cor.result[,1] - cor.result[,2]))]
+    class.2 <- x[,-which.min(abs(cor.result[,1] - cor.result[,2])), drop = F]
   }
   return(list(class.1, class.2))
 }
