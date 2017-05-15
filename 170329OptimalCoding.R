@@ -1,26 +1,33 @@
+# 1.TO BE SOLVED!!! 
+  # HANDLING IMBALANCE!!! RESULTS INDICATED DATA IMBALANCE COULD CAUSE PREDICTION RATE DECREASE
+  # random insert
+  # index <- sample(c(1:nrow(mysample)-1),length(mysample[which(mysample$OVERDUE != 0),]),replace = T)
+  # mysample <- rbind(mysample[index,],mysample[which(mysample$OVERDUE != 0),],mysample[index+1,])
+
+  # rbind directly
+  # mysample <-rbind(mysample, mysample[which(mysample$OVERDUE != 0),])
+
+# 2.TO BE SOLVED!!!
+  # WHETHER TERMINAL IN KEEPING CURRENT NODE OR BACK TO FATHER NODE!!!(VERIFY)
+  # mysample$OVERDUE <- as.factor(mysample$OVERDUE)
+
+  # Pos related variable combined
+  # mysample <- mysample[,-27:-74]
+
+# 3.TO BE SOLVED!!!
+  # ALGORITHM COMPARASON BY MSE AND PREDICTION ACCURACY
+
+
+
+
 # DATA INPUT
 mysample <- read.csv("E:\\Allinpay\\Data\\LOAN\\sqlExport\\sample.csv",
                      header = T,
                      stringsAsFactors = T)
 options(scipen=3)
 
-# TO BE SOLVED!!! HANDLING IMBALANCE!!! RESULTS INDICATED DATA IMBALANCE COULD CAUSE PREDICTION RATE DECREASE
 
-# random insert
-# index <- sample(c(1:nrow(mysample)-1),length(mysample[which(mysample$OVERDUE != 0),]),replace = T)
-# mysample <- rbind(mysample[index,],mysample[which(mysample$OVERDUE != 0),],mysample[index+1,])
-
-# rbind directly
-# mysample <-rbind(mysample, mysample[which(mysample$OVERDUE != 0),])
-
-# TO BE SOLVED!!! WHETHER TERMINAL IN KEEPING CURRENT NODE OR BACK TO FATHER NODE!!!(VERIFY)
-
-# mysample$OVERDUE <- as.factor(mysample$OVERDUE)
-
-# Pos related variable combined
-# mysample <- mysample[,-27:-74]
-
-# ADDING POS QUALITY CONTROL INDEX
+# # ADDING POS QUALITY CONTROL INDEX
 mcht_cd <- read.csv("E:\\Allinpay\\Data\\LOAN\\sqlExport\\POSQC\\zsy_signal_pos\\MerchantID.csv",
                     header = T,
                     stringsAsFactors = T)
@@ -41,21 +48,21 @@ for(i in 1:length(pos.qc)){
 
 # PART 1: WITH QUALITY CONTROL INDEX OF GROUP DESIGN
 
-# pos.qc.group <- list(g.1.res, g.2.res, g.3.res, g.4.res, g.5.res, g.6.res, g.7.res, g.8.res, g.23.res)
-# 
-# pos.qc.merge.group <- Reduce(function(x,y) merge(x,y,by = "X"), pos.qc.group)
-# names(pos.qc.merge.group) <- c("MCHT_CD","g.1.res", "g.2.res", "g.3.res", "g.4.res", "g.5.res", "g.6.res", "g.7.res", "g.8.res", "g.23.res")
-# 
-# pos.qc.merge.group[,-1] <- apply(pos.qc.merge.group[,-1], c(1,2), function(x) ifelse(x == TRUE, 1, 0))
-# 
-# mysample <- merge(pos.qc.merge.group, mysample, by = "MCHT_CD", all.y = T)
-# mysample <- mysample[,-1]
+pos.qc.group <- list(g.1.res, g.2.res, g.3.res, g.4.res, g.5.res, g.6.res, g.7.res, g.8.res, g.23.res)
+
+pos.qc.merge.group <- Reduce(function(x,y) merge(x,y,by = "X"), pos.qc.group)
+names(pos.qc.merge.group) <- c("MCHT_CD","g.1.res", "g.2.res", "g.3.res", "g.4.res", "g.5.res", "g.6.res", "g.7.res", "g.8.res", "g.23.res")
+
+pos.qc.merge.group[,-1] <- apply(pos.qc.merge.group[,-1], c(1,2), function(x) ifelse(x == TRUE, 1, 0))
+
+mysample <- merge(pos.qc.merge.group, mysample, by = "MCHT_CD", all.y = T)
+mysample <- mysample[,-1]
+
 
 # RESULTS WITH ONLY GROUP ((0.93, 0.55), (0.93, 0.48), (0.93, 0.55), (0.93, 0.55), (0.93, 0.55))
 # RESULTS WITH GROUP AND TOTAL ((0.93, 0.53), (0.92, 0.46), (0.93, 0.53), (0.93, 0.53), (0.93, 0.53))
 
 # PART 2: WITH QUALITY CONTROL INDEX OF SINGLE DESIGN(g.single.11 deleted for all value standed TRUE) 
-# g.23.res ADDED OR NOT, SEEMS NOT MUCH DIFFERENCE
 
 # pos.qc.single <- list(g.single.1, g.single.2, g.single.3, g.single.4, g.single.5, g.single.6, g.single.7, g.single.8, g.single.9, g.single.10,
 #                            g.single.12, g.single.13, g.single.14, g.single.15, g.single.16, g.single.17, g.single.18, g.single.19, g.single.20,
@@ -80,50 +87,78 @@ for(i in 1:length(pos.qc)){
 
 # RESULTS ((0.92, 0.46), (0.92, 0.45), (0.92, 0.47), (0.93, 0.48), (0.93, 0.48))
 
+
+# data split into train and test
+length.train <- ceiling(nrow(mysample)*0.6)
+train <- sample(nrow(mysample), length.train)
+sample.train <- mysample[train,]
+sample.test <- mysample[-train,]
+
+
 # IV COMPUTE
 library(woe)
 va <- c()
 iv <- c()
 
-for(i in 1:length(mysample)){
-  if(is.numeric(mysample[,i])){
-    va[i] <- paste(names(mysample)[i],
+# iv <- c()
+# IV <- function(x){
+#   if(is.numeric(x)){
+#     # woe(sample.train, x, Continuous = T, "OVERDUE", C_Bin = 5, Good = "1", Bad = "0")
+#     iv <- append(iv, sum((woe(sample.train, names(x), Continuous = T, "OVERDUE", C_Bin = 5, Good = "1", Bad = "0"))$IV))
+#   } else if(is.factor(x)){
+#     # assign(names(x), woe(sample.train, x, Continuous = F, "OVERDUE", C_Bin = 5, Good = "1", Bad = "0"))
+#     # iv <- append(iv, sum(get(names(x))$IV))
+#     iv <- append(iv, sum((woe(sample.train, names(x), Continuous = F, "OVERDUE", C_Bin = 5, Good = "1", Bad = "0"))$IV))
+#     
+#   }
+#   return(iv)
+# }
+# 
+# iv.output <- apply(sample.train, 2, IV)
+
+
+
+
+
+for(i in 1:length(sample.train)){
+  if(is.numeric(sample.train[,i])){
+    va[i] <- paste(names(sample.train)[i],
                    "WOE",
                    sep = "")
-    assign(paste(names(mysample)[i],
+    assign(paste(names(sample.train)[i],
                  "WOE",
                  sep = ""),
-           woe(mysample,
-               names(mysample)[i],
+           woe(sample.train,
+               names(sample.train)[i],
                Continuous = T,
                "OVERDUE",
                C_Bin = 5,
                Good = "1",
                Bad = "0"))
-    iv[i] <- sum(get(paste(names(mysample)[i],
+    iv[i] <- sum(get(paste(names(sample.train)[i],
                            "WOE",
                            sep = ""))$IV)
-  } else if(is.factor(mysample[,i])){
-    va[i] <- paste(names(mysample)[i],
+  } else if(is.factor(sample.train[,i])){
+    va[i] <- paste(names(sample.train)[i],
                    "WOE",
                    sep = "")
-    assign(paste(names(mysample)[i],
+    assign(paste(names(sample.train)[i],
                  "WOE",
                  sep = ""),
-           woe(mysample,
-               names(mysample)[i],
+           woe(sample.train,
+               names(sample.train)[i],
                Continuous = F,
                "OVERDUE",
                C_Bin = 5,
                Good = "1",
                Bad = "0"))
-    iv[i] <- sum(get(paste(names(mysample)[i],
+    iv[i] <- sum(get(paste(names(sample.train)[i],
                            "WOE",
                            sep = ""))$IV)
   }
 }
 
-infovalue <- data.frame(names(mysample),iv,row.names = substr(va,1,(nchar(va)-3)))
+infovalue <- data.frame(names(sample.train),iv,row.names = substr(va,1,(nchar(va)-3)))
 infovalue <- infovalue[-which(is.infinite(infovalue$iv)),]
 
 # PCA CLASSIFIED
@@ -180,7 +215,7 @@ calNeedSplitAndRatio <- function(currnode, parentnode, list.otherleafs) {
   }
 }
 
-
+library(corrplot)
 PCA <- function(x){
   pr.out.class <- prcomp(x, scale = T)
   cor.result <- cor(x, pr.out.class$x[,1:2])
@@ -199,8 +234,8 @@ PCA <- function(x){
 
 
 #create tree test data
-data.root <- mysample[,-ncol(mysample)]
-# data.root <- mysample[,-(ncol(mysample)-2): -ncol(mysample)]
+data.root <- sample.train[,-ncol(sample.train)]
+# data.root <- sample.train[,-(ncol(sample.train)-2): -ncol(sample.train)]
 t <- Node$new("t",ratio=NULL,needsplit=TRUE,data=data.root)  #root
 #create tree
 createRESTree <- function(){
@@ -296,7 +331,7 @@ final.sample <- data.frame(final.sample,stringsAsFactors = FALSE)
 # final.sample <- transform(final.sample, class=as.numeric(as.character(final.sample)))
 indx <- sapply(final.sample, is.character)
 final.sample[indx] <- lapply(final.sample[indx], function(x) as.numeric(as.character(x)))
-final.sample$OVERDUE <- mysample$OVERDUE
+final.sample$OVERDUE <- sample.train$OVERDUE
 
 
 
@@ -374,29 +409,64 @@ stepwiseGlm <- newGLMSelect(final.sample)
 # summary(stepwiseGlm)
 
 library(ggplot2)
-compare.table <- function(x){
-  glm.probs <- predict(x, type = "response")
-  contrasts(factor(final.sample$OVERDUE))
-  glm.pred <- rep("0", nrow(final.sample))
+
+compare.table <- function(x, dataset){
+  glm.probs <- predict(x, dataset, type = "response")
+  contrasts(factor(dataset$OVERDUE))
+  glm.pred <- rep("0", nrow(dataset))
   glm.pred[glm.probs > 0.5] = "1"
-  table.rate <- table(glm.pred, factor(final.sample$OVERDUE))
-  print(qplot(seq(-200,200, length = 5771), sort(glm.probs), col = "response"))
+  table.rate <- table(glm.pred, factor(dataset$OVERDUE))
   print(table.rate)
   total.correct.rate <- (table.rate[1,1]+table.rate[2,2])/(sum(table.rate))
   overdue.correct.rate <- table.rate[2,2]/(table.rate[1,2]+table.rate[2,2])
   return(c(total.correct.rate, overdue.correct.rate))
 }
 
-if(!is.character((stepwiseGlm))){
-  compare.table(stepwiseGlm)
+if(!is.character(stepwiseGlm)){
+  compare.table(stepwiseGlm, sample.train)
 }
 
-compare.table(final.fullmod)
-compare.table(final.backwards)
-compare.table(final.forwards)
-compare.table(final.bothways)
+compare.table(final.fullmod, sample.train)
+compare.table(final.backwards, sample.train)
+compare.table(final.forwards, sample.train)
+compare.table(final.bothways, sample.train)
+
+if(!is.character(stepwiseGlm)){
+  compare.table(stepwiseGlm, sample.test)
+}
+
+compare.table(final.fullmod, sample.test)
+compare.table(final.backwards, sample.test)
+compare.table(final.forwards, sample.test)
+compare.table(final.bothways, sample.test)
 
 
 
+# Gini index and Lorenz Curve
+library(ineq)
+gini.index <- Gini(predict(stepwiseGlm, sample.test, type = "response"))
+Distr <- predict(stepwiseGlm, type = "response")
+Distr <- Lc(Distr, n = rep(1,  length(Distr)), plot = F)
+plot(Distr$p, Distr$L,
+     col = "black",
+     type = "b",
+     lty = 1,
+     lwd = 3,
+     main = "Lorenz Curve for Distributions")
+points(c(0,1), c(0,1), type = "l", lty = 2, lwd = 2, col = "grey")
+
+
+library(ROCR)
+pred <- prediction(predict(stepwiseGlm, sample.test, type = "response"), sample.test$OVERDUE)
+perf <- performance(pred, measure = "rec", x.measure = "rpp")
+plot(perf, colorize = T)
+grid(5, 5, lwd = 1)
+points(c(0,1), c(0,1), type = "l", lty = 2, lwd = 2, col = "grey")
+
+
+
+
+
+ 
 
 
