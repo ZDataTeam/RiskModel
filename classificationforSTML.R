@@ -9,7 +9,7 @@
   # TRY MULTI COMBINATION OF FUNCTION
 
   # MSE OF EACH ALGORITHM
-
+library(sca)
 
 # DATA INPUT
 mySample <- read.csv("E:\\Allinpay\\Data\\STLM_INS_CIRCLE\\workingPaper\\PrecisionMarketing\\data\\sample.csv",
@@ -23,9 +23,9 @@ mySample$stlm_ins_circle <- as.factor(mySample$stlm_ins_circle)
 # linear combination with all weight set
 # mySample$SUM <- apply(mySample[,2:9], 1, sum)
 comb <- function(x){
-  weight <- c(1, 1, 1, 1, 1, 1, 1, 1)
+  # weight <- c(1, 1, 1, 1, 1, 1, 1, 1)
   # weight <- c(5, 5, 10, 20, 20, 1, 1, 1)
-  # weight <- c(5, 50, 20, 20, 20, 1, 10, 1)
+  weight <- c(5, 50, 20, 20, 20, 1, 10, 1)
   y <- sum(weight*x)
   return(y)
 }
@@ -35,7 +35,7 @@ mySample$SUM <- apply(mySample[,2:9], 1, comb)
 
 # NORMAL DISTRIBUTION
 # Label establish
-mySample$NORM <- rnorm(length(mySample$stlm_ins_circle), mean = 0, sd = 10)
+mySample$NORM <- rnorm(length(mySample$stlm_ins_circle), mean = 0, sd = 3)
 # mySample$NORM <- rnorm(length(mySample$stlm_ins_circle)) # rnor(n, mean = 0, sd = 1)
 mySample$SUM.NORM <- mySample$SUM + mySample$NORM
 mySample$channel.Nor <- rep("0", length(mySample$stlm_ins_circle))
@@ -43,7 +43,7 @@ mySample[which(mySample$SUM.NORM > 0),] <- transform(mySample[which(mySample$SUM
 mySample$channel.Nor <- as.factor(mySample$channel.Nor)
 
 # UNIFORM
-mySample$UNIFORM <- runif(length(mySample$stlm_ins_circle), min = -10, max = 10)
+mySample$UNIFORM <- runif(length(mySample$stlm_ins_circle), min = -5, max = 5)
 # mySample$UNIFORM <- runif(length(mySample$stlm_ins_circle), min = -1, max = 1) # runif(n, min = 0, max = 1)
 mySample$SUM.UNIF <- mySample$SUM + mySample$UNIFORM
 mySample$channel.Unif <- rep("0", length(mySample$stlm_ins_circle))
@@ -59,7 +59,7 @@ mySample[which(mySample$SUM.EXPO >0),] <- transform(mySample[which(mySample$SUM.
 mySample$channel.Exp <- as.factor(mySample$channel.Exp)
 
 # POISSON
-mySample$POISSON <- rpois(length(mySample$stlm_ins_circle), lambda = 5)
+mySample$POISSON <- rpois(length(mySample$stlm_ins_circle), lambda = 3)
 # mySample$POISSON <- rpois(length(mySample$stlm_ins_circle), lambda = 2) # rpois(n, lambda)
 mySample$SUM.POI <- mySample$SUM + mySample$POISSON
 mySample$channel.Poi <- rep("0", length(mySample$stlm_ins_circle))
@@ -84,7 +84,7 @@ mySample$channel.WEIBULL <- as.factor(mySample$channel.WEIBULL)
 
 
 # LOGIT
-mySample$Logit <- rlogis(length(mySample$stlm_ins_circle), location = 0, scale = 5)
+mySample$Logit <- rlogis(length(mySample$stlm_ins_circle), location = 0, scale = 3)
 # mySample$Logit <- rlogis(length(mySample$stlm_ins_circle), location = 0, scale = 1) # rlogis(n, location = 0, scale = 1)
 mySample$SUM.Logit <- mySample$SUM + mySample$Logit
 mySample$channel.Logit <- rep("0", length(mySample$stlm_ins_circle))
@@ -146,6 +146,8 @@ sample.test.LogNormal <- sample.test[,c(1:8,33)]
 # alpha.interval <- seq(0,1,0.1)
 # 
 # TRate <- data.frame()
+predict.result.th <- c()
+p <- c()
 
   # DISTANCE-BASED
   # Center Matrix
@@ -205,14 +207,16 @@ sample.test.LogNormal <- sample.test[,c(1:8,33)]
   system.time(test.class.Nor <- apply(sample.test.Nor[,1:8], 1, dist.compute, n = 1))
   accuracy <- table(test.class.Nor, sample.test.Nor$channel.Nor)
   print(accuracy)
-  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
+  predict.result.th <- append(predict.result.th,percent((accuracy[1,1]+accuracy[2,2])/sum(accuracy), d =2))
+  p <- append(p, percent(accuracy[2,2]/(accuracy[2,2] + accuracy[1,2]), d= 2))
   # transfer.rate <- lapply(alpha.interval, TransferRate)
   # TRate <- rbind(TRate, transfer.rate)
   
   system.time(test.class.Unif <- apply(sample.test.Unif[,1:8], 1, dist.compute, n = 2))
   accuracy <- table(test.class.Unif, sample.test.Unif$channel.Unif)
   print(accuracy)
-  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
+  predict.result.th <- append(predict.result.th,percent((accuracy[1,1]+accuracy[2,2])/sum(accuracy), d =2))
+  p <- append(p, percent(accuracy[2,2]/(accuracy[2,2] + accuracy[1,2]), d= 2))
   # transfer.rate <- lapply(alpha.interval, TransferRate)
   # TRate <- rbind(TRate, transfer.rate)
   
@@ -220,7 +224,8 @@ sample.test.LogNormal <- sample.test[,c(1:8,33)]
   system.time(test.class.Exp <- apply(sample.test.Exp[,1:8], 1, dist.compute, n = 3))
   accuracy <- table(test.class.Exp, sample.test.Exp$channel.Exp)
   print(accuracy)
-  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
+  predict.result.th <- append(predict.result.th,percent((accuracy[1,1]+accuracy[2,2])/sum(accuracy), d =2))
+  p <- append(p, percent(accuracy[2,2]/(accuracy[2,2] + accuracy[1,2]), d= 2))
   # transfer.rate <- lapply(alpha.interval, TransferRate)
   # TRate <- rbind(TRate, transfer.rate)
   
@@ -228,35 +233,40 @@ sample.test.LogNormal <- sample.test[,c(1:8,33)]
   system.time(test.class.Poi <- apply(sample.test.Poi[,1:8], 1, dist.compute, n = 4))
   accuracy <- table(test.class.Poi, sample.test.Poi$channel.Poi)
   print(accuracy)
-  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
+  predict.result.th <- append(predict.result.th,percent((accuracy[1,1]+accuracy[2,2])/sum(accuracy), d =2))
+  p <- append(p, percent(accuracy[2,2]/(accuracy[2,2] + accuracy[1,2]), d= 2))
   # transfer.rate <- lapply(alpha.interval, TransferRate)
   # TRate <- rbind(TRate, transfer.rate)
   
   system.time(test.class.Ttest <- apply(sample.test.Ttest[,1:8], 1, dist.compute, n = 5))
   accuracy <- table(test.class.Ttest, sample.test.Ttest$channel.Ttest)
   print(accuracy)
-  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
+  predict.result.th <- append(predict.result.th,percent((accuracy[1,1]+accuracy[2,2])/sum(accuracy), d =2))
+  p <- append(p, percent(accuracy[2,2]/(accuracy[2,2] + accuracy[1,2]), d= 2))
   # transfer.rate <- lapply(alpha.interval, TransferRate)
   # TRate <- rbind(TRate, transfer.rate)
   
   system.time(test.class.WEIBULL <- apply(sample.test.WEIBULL[,1:8], 1, dist.compute, n = 6))
   accuracy <- table(test.class.WEIBULL, sample.test.WEIBULL$channel.WEIBULL)
   print(accuracy)
-  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
+  predict.result.th <- append(predict.result.th,percent((accuracy[1,1]+accuracy[2,2])/sum(accuracy), d =2))
+  p <- append(p, percent(accuracy[2,2]/(accuracy[2,2] + accuracy[1,2]), d= 2))
   # transfer.rate <- lapply(alpha.interval, TransferRate)
   # TRate <- rbind(TRate, transfer.rate)
   
   system.time(test.class.Logit <- apply(sample.test.Logit[,1:8], 1, dist.compute, n = 7))
   accuracy <- table(test.class.Logit, sample.test.Logit$channel.Logit)
   print(accuracy)
-  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
+  predict.result.th <- append(predict.result.th,percent((accuracy[1,1]+accuracy[2,2])/sum(accuracy), d =2))
+  p <- append(p, percent(accuracy[2,2]/(accuracy[2,2] + accuracy[1,2]), d= 2))
   # transfer.rate <- lapply(alpha.interval, TransferRate)
   # TRate <- rbind(TRate, transfer.rate)
   
   system.time(test.class.LogNormal <- apply(sample.test.LogNormal[,1:8], 1, dist.compute, n = 8))
   accuracy <- table(test.class.LogNormal, sample.test.LogNormal$channel.LogNormal)
   print(accuracy)
-  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
+  predict.result.th <- append(predict.result.th,percent((accuracy[1,1]+accuracy[2,2])/sum(accuracy), d =2))
+  p <- append(p, percent(accuracy[2,2]/(accuracy[2,2] + accuracy[1,2]), d= 2))
   # transfer.rate <- lapply(alpha.interval, TransferRate)
   # TRate <- rbind(TRate, transfer.rate)
   
@@ -272,7 +282,8 @@ sample.test.LogNormal <- sample.test[,c(1:8,33)]
   # Verification of K-NN
   accuracy <- table(knn.pred.Nor, sample.test.Nor$channel.Nor)
   print(accuracy)
-  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
+  predict.result.th <- append(predict.result.th,percent((accuracy[1,1]+accuracy[2,2])/sum(accuracy), d =2))
+  p <- append(p, percent(accuracy[2,2]/(accuracy[2,2] + accuracy[1,2]), d= 2))
   # transfer.rate <- lapply(alpha.interval, TransferRate)
   # TRate <- rbind(TRate, transfer.rate)
   
@@ -280,7 +291,8 @@ sample.test.LogNormal <- sample.test[,c(1:8,33)]
   system.time(knn.pred.Unif <- knn(sample.train.Unif, sample.test.Unif, sample.train.Unif$channel.Unif, k = 5))
   accuracy <- table(knn.pred.Unif, sample.test.Unif$channel.Unif)
   print(accuracy)
-  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
+  predict.result.th <- append(predict.result.th,percent((accuracy[1,1]+accuracy[2,2])/sum(accuracy), d =2))
+  p <- append(p, percent(accuracy[2,2]/(accuracy[2,2] + accuracy[1,2]), d= 2))
   # transfer.rate <- lapply(alpha.interval, TransferRate)
   # TRate <- rbind(TRate, transfer.rate)
   
@@ -288,42 +300,48 @@ sample.test.LogNormal <- sample.test[,c(1:8,33)]
   system.time(knn.pred.Exp <- knn(sample.train.Exp, sample.test.Exp, sample.train.Exp$channel.Exp, k = 5))
   accuracy <- table(knn.pred.Exp, sample.test.Exp$channel.Exp)
   print(accuracy)
-  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
+  predict.result.th <- append(predict.result.th,percent((accuracy[1,1]+accuracy[2,2])/sum(accuracy), d =2))
+  p <- append(p, percent(accuracy[2,2]/(accuracy[2,2] + accuracy[1,2]), d= 2))
   # transfer.rate <- lapply(alpha.interval, TransferRate)
   # TRate <- rbind(TRate, transfer.rate)
   
   system.time(knn.pred.Poi <- knn(sample.train.Poi, sample.test.Poi, sample.train.Poi$channel.Poi, k = 5))
   accuracy <- table(knn.pred.Poi, sample.test.Poi$channel.Poi)
   print(accuracy)
-  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
+  predict.result.th <- append(predict.result.th,percent((accuracy[1,1]+accuracy[2,2])/sum(accuracy), d =2))
+  p <- append(p, percent(accuracy[2,2]/(accuracy[2,2] + accuracy[1,2]), d= 2))
   # transfer.rate <- lapply(alpha.interval, TransferRate)
   # TRate <- rbind(TRate, transfer.rate)
   
   system.time(knn.pred.Ttest <- knn(sample.train.Ttest, sample.test.Ttest, sample.train.Ttest$channel.Ttest, k = 5))
   accuracy <- table(knn.pred.Ttest , sample.test.Ttest$channel.Ttest)
   print(accuracy)
-  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
+  predict.result.th <- append(predict.result.th,percent((accuracy[1,1]+accuracy[2,2])/sum(accuracy), d =2))
+  p <- append(p, percent(accuracy[2,2]/(accuracy[2,2] + accuracy[1,2]), d= 2))
   # transfer.rate <- lapply(alpha.interval, TransferRate)
   # TRate <- rbind(TRate, transfer.rate)
   
   system.time(knn.pred.WEIBULL <- knn(sample.train.WEIBULL, sample.test.WEIBULL, sample.train.WEIBULL$channel.WEIBULL, k = 5))
   accuracy <- table(knn.pred.WEIBULL, sample.test.WEIBULL$channel.WEIBULL)
   print(accuracy)
-  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
+  predict.result.th <- append(predict.result.th,percent((accuracy[1,1]+accuracy[2,2])/sum(accuracy), d =2))
+  p <- append(p, percent(accuracy[2,2]/(accuracy[2,2] + accuracy[1,2]), d= 2))
   # transfer.rate <- lapply(alpha.interval, TransferRate)
   # TRate <- rbind(TRate, transfer.rate)
   
   system.time(knn.pred.Logit <- knn(sample.train.Logit, sample.test.Logit, sample.train.Logit$channel.Logit, k = 5))
   accuracy <- table(knn.pred.Logit, sample.test.Logit$channel.Logit)
   print(accuracy)
-  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
+  predict.result.th <- append(predict.result.th,percent((accuracy[1,1]+accuracy[2,2])/sum(accuracy), d =2))
+  p <- append(p, percent(accuracy[2,2]/(accuracy[2,2] + accuracy[1,2]), d= 2))
   # transfer.rate <- lapply(alpha.interval, TransferRate)
   # TRate <- rbind(TRate, transfer.rate)
   
   system.time(knn.pred.LogNormal <- knn(sample.train.LogNormal, sample.test.LogNormal, sample.train.LogNormal$channel.LogNormal, k = 5))
   accuracy <- table(knn.pred.LogNormal, sample.test.LogNormal$channel.LogNormal)
   print(accuracy)
-  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
+  predict.result.th <- append(predict.result.th,percent((accuracy[1,1]+accuracy[2,2])/sum(accuracy), d =2))
+  p <- append(p, percent(accuracy[2,2]/(accuracy[2,2] + accuracy[1,2]), d= 2))
   # transfer.rate <- lapply(alpha.interval, TransferRate)
   # TRate <- rbind(TRate, transfer.rate)
   
@@ -352,7 +370,8 @@ sample.test.LogNormal <- sample.test[,c(1:8,33)]
   pred.svm.Nor <- ifelse(pred.svm.Nor < 0, -1, 1)
   accuracy <- table(pred.svm.Nor, sample.test.Nor.svm$channel.Nor)
   print(accuracy)
-  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
+  predict.result.th <- append(predict.result.th,percent((accuracy[1,1]+accuracy[2,2])/sum(accuracy), d =2))
+  p <- append(p, percent(accuracy[2,2]/(accuracy[2,2] + accuracy[1,2]), d= 2))
   # transfer.rate <- lapply(alpha.interval, TransferRate)
   # TRate <- rbind(TRate, transfer.rate)
   
@@ -375,7 +394,8 @@ sample.test.LogNormal <- sample.test[,c(1:8,33)]
   pred.svm.Unif <- ifelse(pred.svm.Unif < 0, -1, 1)
   accuracy <- table(pred.svm.Unif, sample.test.Unif.svm$channel.Unif)
   print(accuracy)
-  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
+  predict.result.th <- append(predict.result.th,percent((accuracy[1,1]+accuracy[2,2])/sum(accuracy), d =2))
+  p <- append(p, percent(accuracy[2,2]/(accuracy[2,2] + accuracy[1,2]), d= 2))
   # transfer.rate <- lapply(alpha.interval, TransferRate)
   # TRate <- rbind(TRate, transfer.rate)
   
@@ -399,7 +419,8 @@ sample.test.LogNormal <- sample.test[,c(1:8,33)]
   pred.svm.Exp <- ifelse(pred.svm.Exp < 0, -1, 1)
   accuracy <- table(pred.svm.Exp, sample.test.Exp.svm$channel.Exp)
   print(accuracy)
-  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
+  predict.result.th <- append(predict.result.th,percent((accuracy[1,1]+accuracy[2,2])/sum(accuracy), d =2))
+  p <- append(p, percent(accuracy[2,2]/(accuracy[2,2] + accuracy[1,2]), d= 2))
   # transfer.rate <- lapply(alpha.interval, TransferRate)
   # TRate <- rbind(TRate, transfer.rate)
   
@@ -422,7 +443,8 @@ sample.test.LogNormal <- sample.test[,c(1:8,33)]
   pred.svm.Poi <- ifelse(pred.svm.Poi < 0, -1, 1)
   accuracy <- table(pred.svm.Poi, sample.test.Poi.svm$channel.Poi)
   print(accuracy)
-  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
+  predict.result.th <- append(predict.result.th,percent((accuracy[1,1]+accuracy[2,2])/sum(accuracy), d =2))
+  p <- append(p, percent(accuracy[2,2]/(accuracy[2,2] + accuracy[1,2]), d= 2))
   # transfer.rate <- lapply(alpha.interval, TransferRate)
   # TRate <- rbind(TRate, transfer.rate)
   
@@ -446,7 +468,8 @@ sample.test.LogNormal <- sample.test[,c(1:8,33)]
   pred.svm.Ttest <- ifelse(pred.svm.Ttest < 0, -1, 1)
   accuracy <- table(pred.svm.Ttest, sample.test.Ttest.svm$channel.Ttest)
   print(accuracy)
-  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
+  predict.result.th <- append(predict.result.th,percent((accuracy[1,1]+accuracy[2,2])/sum(accuracy), d =2))
+  p <- append(p, percent(accuracy[2,2]/(accuracy[2,2] + accuracy[1,2]), d= 2))
   # transfer.rate <- lapply(alpha.interval, TransferRate)
   # TRate <- rbind(TRate, transfer.rate)
   
@@ -470,7 +493,8 @@ sample.test.LogNormal <- sample.test[,c(1:8,33)]
   pred.svm.WEIBULL <- ifelse(pred.svm.WEIBULL < 0, -1, 1)
   accuracy <- table(pred.svm.WEIBULL, sample.test.WEIBULL.svm$channel.WEIBULL)
   print(accuracy)
-  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
+  predict.result.th <- append(predict.result.th,percent((accuracy[1,1]+accuracy[2,2])/sum(accuracy), d =2))
+  p <- append(p, percent(accuracy[2,2]/(accuracy[2,2] + accuracy[1,2]), d= 2))
   # transfer.rate <- lapply(alpha.interval, TransferRate)
   # TRate <- rbind(TRate, transfer.rate)
   
@@ -496,7 +520,8 @@ sample.test.LogNormal <- sample.test[,c(1:8,33)]
   pred.svm.Logit <- ifelse(pred.svm.Logit < 0, -1, 1)
   accuracy <- table(pred.svm.Logit, sample.test.Logit.svm$channel.Logit)
   print(accuracy)
-  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
+  predict.result.th <- append(predict.result.th,percent((accuracy[1,1]+accuracy[2,2])/sum(accuracy), d =2))
+  p <- append(p, percent(accuracy[2,2]/(accuracy[2,2] + accuracy[1,2]), d= 2))
   # transfer.rate <- lapply(alpha.interval, TransferRate)
   # TRate <- rbind(TRate, transfer.rate)
   
@@ -522,14 +547,15 @@ sample.test.LogNormal <- sample.test[,c(1:8,33)]
   pred.svm.LogNormal <- ifelse(pred.svm.LogNormal < 0, -1, 1)
   accuracy <- table(pred.svm.LogNormal, sample.test.LogNormal.svm$channel.LogNormal)
   print(accuracy)
-  (accuracy[1,1]+accuracy[2,2])/sum(accuracy)
+  predict.result.th <- append(predict.result.th,percent((accuracy[1,1]+accuracy[2,2])/sum(accuracy), d =2))
+  p <- append(p, percent(accuracy[2,2]/(accuracy[2,2] + accuracy[1,2]), d= 2))
   # transfer.rate <- lapply(alpha.interval, TransferRate)
   # TRate <- rbind(TRate, transfer.rate)
   
+
   
   
-  
-  colnames(TRate) <- c(alpha.interval)
+  # colnames(TRate) <- c(alpha.interval)
   
   
   # const <- TRate
