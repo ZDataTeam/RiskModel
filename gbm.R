@@ -1,4 +1,4 @@
-# GBM(with CV)
+# gradient boosting machine(with CV)
 
 # train accuracy(0.97, 0.77)
 # test accuracy(0.96, 0.67)
