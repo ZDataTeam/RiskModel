@@ -94,3 +94,48 @@ lasso.table.test[2,2]/(lasso.table.test[1,2]+lasso.table.test[2,2])
 
 
 
+# Gini index and Lorenz Curve
+library(ineq)
+gini.index <- Gini(ridge.probs)
+Distr <- ridge.probs
+Distr <- Lc(Distr, n = rep(1,  length(Distr)), plot = F)
+plot(Distr$p, Distr$L,
+     col = "black",
+     type = "b",
+     lty = 1,
+     lwd = 3,
+     main = "Lorenz Curve for Distributions")
+points(c(0,1), c(0,1), type = "l", lty = 2, lwd = 2, col = "grey")
+
+
+
+library(ROCR)
+pred <- prediction(ridge.probs, y.test)
+perf <- performance(pred, measure = "rec", x.measure = "rpp")
+plot(perf, colorize = T)
+grid(5, 5, lwd = 1)
+points(c(0,1), c(0,1), type = "l", lty = 2, lwd = 2, col = "grey")
+
+
+gini.index <- Gini(lasso.probs)
+Distr <- lasso.probs
+Distr <- Lc(Distr, n = rep(1,  length(Distr)), plot = F)
+plot(Distr$p, Distr$L,
+     col = "black",
+     type = "b",
+     lty = 1,
+     lwd = 3,
+     main = "Lorenz Curve for Distributions")
+points(c(0,1), c(0,1), type = "l", lty = 2, lwd = 2, col = "grey")
+
+pred <- prediction(lasso.probs, y.test)
+perf <- performance(pred, measure = "rec", x.measure = "rpp")
+plot(perf, colorize = T)
+grid(5, 5, lwd = 1)
+points(c(0,1), c(0,1), type = "l", lty = 2, lwd = 2, col = "grey")
+
+
+
+
+
+
