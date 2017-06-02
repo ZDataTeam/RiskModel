@@ -1,7 +1,9 @@
 # gradient boosting machine(with CV)
 
-# train accuracy(0.97, 0.77)
-# test accuracy(0.96, 0.67)
+# without QC:      train accuracy(0.98, 0.80) test accuracy(0.95, 0.60) Gini 0.83
+# with QCGROUP:    train accuracy(0.98, 0.82) test accuracy(0.95, 0.62) Gini 0.85
+# with QCOneGroup: train accuracy(0.97, 0.78) test accuracy(0.95, 0.63) Gini 0.82
+# with QCSingle:   train accuracy(0.98, 0.81) test accuracy(0.95, 0.62) Gini 0.85
 
 library(caret)
 library(gbm)
@@ -9,17 +11,21 @@ library(plyr)
 library(survival)
 
 # DATA INPUT
-mysample <- read.csv("E:\\Allinpay\\Data\\LOAN\\sqlExport\\sample.csv",
-                     header = T,
-                     stringsAsFactors = T)
+mysample <- read.csv(# "E:\\Allinpay\\Data\\riskData\\\\sample.csv",
+  # "E:\\Allinpay\\Data\\riskData\\withQCGroup.csv",
+  # "E:\\Allinpay\\Data\\riskData\\withQCOneGroup.csv",
+  "E:\\Allinpay\\Data\\riskData\\withQCSingle.csv",
+  header = T,
+  stringsAsFactors = T)
 options(scipen=3)
-
 
 
 length.train <- ceiling(nrow(mysample)*0.6)
 train <- sample(nrow(mysample), length.train)
-sample.train <- mysample[train,c(-16:-17,-40,-46,-62:-66)]
-sample.test <- mysample[-train,c(-16:-17,-40,-46,-62:-66)]
+
+sample.train <- mysample[train,]
+sample.test <- mysample[-train,]
+
 
 sample.train$OVERDUE <- as.factor(sample.train$OVERDUE)
 

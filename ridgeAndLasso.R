@@ -1,16 +1,32 @@
 # ridge regression and lasso regression to do regularization
 
-# for ridge: train accuracy(0.9497545, 0.5229358) test accuracy(0.9428076, 0.4956522)
-# for lasso: train accuracy(0.9537973, 0.5504587) test accuracy(0.9493068, 0.5347826)
+# without QC
+# for ridge: train accuracy(0.95, 0.52) test accuracy(0.95, 0.49) gini 0.69
+# for lasso: train accuracy(0.95, 0.53) test accuracy(0.95, 0.54) gini 0.70
+
+# with QCGroup
+# for ridge: train accuracy(0.96, 0.56) test accuracy(0.94, 0.56) gini 0.79
+# for lasso: train accuracy(0.94, 0.56) test accuracy(0.95, 0.59) gini 0.78
+
+# with QCOneGroup
+# for ridge: train accuracy(0.95, 0.47) test accuracy(0.95, 0.57) gini 0.71
+# for lasso: train accuracy(0.95, 0.52) test accuracy(0.95, 0.59) gini 0.73
+
+# with QCSingle
+# for ridge: train accuracy(0.95, 0.56) test accuracy(0.95, 0.52) gini 0.78
+# for lasso: train accuracy(0.95, 0.55) test accuracy(0.95, 0.55) gini 0.79
+
 
 require(glmnet)
 
 # DATA INPUT
-mysample <- read.csv("E:\\Allinpay\\Data\\LOAN\\sqlExport\\sample.csv",
+mysample <- read.csv(# "E:\\Allinpay\\Data\\riskData\\sample.csv",
+                     # "E:\\Allinpay\\Data\\riskData\\withQCGroup.csv",
+                     # "E:\\Allinpay\\Data\\riskData\\withQCOneGroup.csv",
+                     "E:\\Allinpay\\Data\\riskData\\withQCSingle.csv",
                      header = T,
                      stringsAsFactors = T)
 options(scipen=3)
-
 
 length.train <- ceiling(nrow(mysample)*0.6)
 train <- sample(nrow(mysample), length.train)
@@ -18,10 +34,10 @@ sample.train <- mysample[train,]
 sample.test <- mysample[-train,]
 
 
-x.train <- as.matrix(sample.train[, -63:-67])
+x.train <- as.matrix(sample.train[,-ncol(sample.train)])
 y.train <- as.double(as.matrix(sample.train[,ncol(sample.train)]))
 
-x.test <- as.matrix(sample.test[,-63:-67])
+x.test <- as.matrix(sample.test[,-ncol(sample.train)])
 y.test <- as.double(as.matrix(sample.test[,ncol(sample.test)]))
 
 # fitting the model(ridge: alpha = 0)
@@ -96,7 +112,7 @@ lasso.table.test[2,2]/(lasso.table.test[1,2]+lasso.table.test[2,2])
 
 # Gini index and Lorenz Curve
 library(ineq)
-gini.index <- Gini(ridge.probs)
+ridge.gini.index <- Gini(ridge.probs)
 Distr <- ridge.probs
 Distr <- Lc(Distr, n = rep(1,  length(Distr)), plot = F)
 plot(Distr$p, Distr$L,
@@ -117,7 +133,7 @@ grid(5, 5, lwd = 1)
 points(c(0,1), c(0,1), type = "l", lty = 2, lwd = 2, col = "grey")
 
 
-gini.index <- Gini(lasso.probs)
+lasso.gini.index <- Gini(lasso.probs)
 Distr <- lasso.probs
 Distr <- Lc(Distr, n = rep(1,  length(Distr)), plot = F)
 plot(Distr$p, Distr$L,
